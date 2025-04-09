@@ -1,0 +1,130 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}Recherche de produits{% endblock %}
+{% block content %}
+ 
+<form id="search-form" method="POST" action="{% url 'search_products' %}#produits" class="bg-white p-6 rounded-lg shadow-lg w-full max-w-lg mx-auto pt-6">
+    {% csrf_token %}
+    <h2 class="text-2xl font-semibold text-gray-800 mb-6 text-center">Recherche de produits proches</h2>
+
+    <!-- Formulaire de recherche -->
+    <label for="product_name" class="block text-gray-700 font-medium mb-2">Nom du produit :</label>
+    <input type="text" id="product_name" name="product_name" class="w-full py-3 mb-4 border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Nom du produit" value="{{ request.POST.product_name }}">
+
+    <div class="mb-4">
+        <label for="category" class="block text-gray-700 font-medium mb-2">Catégorie :</label>
+        <select id="category" name="category" class="w-full py-3 mb-4 border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <option value="">--Choisir une catégorie--</option>
+            {% for category in categories %}
+                <option value="{{ category.id }}" {% if category.id == request.POST.category %}selected{% endif %}>
+                    {{ category.name }}
+                </option>
+            {% endfor %}
+        </select>
+    </div>
+
+    <!-- Bouton pour soumettre le formulaire -->
+    <button type="submit" id="submit-location-btn" class="w-full py-3 text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 rounded-md transition-all">
+        Rechercher les produits proches
+    </button>
+</form>
+
+<!-- Affichage des produits -->
+<section id="produits" class="py-16 bg-gray-100">
+    <h2 class="text-2xl font-bold text-center text-gray-800 mb-6">
+        {{ num_products }} produits proches de vous
+    </h2>
+
+    <div class="flex flex-wrap gap-6 justify-center">
+        {% for product in products %}
+        <div class="flex-shrink-0 border-2 border-secondary bg-slate-100 text-black rounded-xl mb-6 cursor-pointer 
+            hover:scale-105 hover:shadow-lg transition-transform duration-300 ease-linear w-64 h-full flex flex-col">
+            <div>
+                <img src="{{ product.image.url }}" alt="{{ product.name }}" class="rounded-t-xl w-full h-40 object-cover" />
+            </div>
+            <div class="flex flex-col justify-between flex-grow p-4">
+                <!-- Formulaire d'ajout au panier -->
+                <form id="add-to-cart-form-{{ product.id }}" action="{% url 'add_to_cart_ajax' product.id %}" method="POST">
+                    {% csrf_token %}
+                    <button type="submit" class="px-6 py-2 bg-blue-500 text-white rounded-full text-lg hover:bg-blue-600 transition duration-300">
+                        Ajouter au panier
+                    </button>
+                </form>
+
+                <!-- Nom du produit et prix -->
+                <div class="flex flex-col items-center my-4">
+                    <h1 class="font-semibold text-xl text-primary pt-2 text-center">{{ product.name }}</h1>
+                    <h2 class="font-medium text-lg text-center">{{ product.price_with_commission }} CDF{{ product.store.currency }}</h2>
+                </div>
+
+                <!-- Bouton "Voir les détails" -->
+                <a href="{% url 'product_detail' product.id %}" class="px-6 py-2 bg-blue-500 text-white rounded-full text-lg hover:bg-blue-600 transition duration-300">
+                    Voir les détails
+                </a>
+            </div>
+        </div>
+        {% empty %}
+        <p>Aucun produit trouvé pour cette recherche.</p>
+        {% endfor %}
+    </div>
+</section>
+
+<!-- Pagination -->
+{% if products.has_other_pages %}
+<div class="mt-8 mb-16"> 
+    <nav aria-label="Pagination des produits" class="flex justify-center">
+        <ul class="flex space-x-4">
+
+            {% if products.has_previous %}
+                <li>
+                    <a href="?page=1#produits" 
+                       class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+                        « Première
+                    </a>
+                </li>
+                <li>
+                    <a href="?page={{ products.previous_page_number }}#produits" 
+                       class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+                        <
+                    </a>
+                </li>
+            {% endif %}
+
+            <!-- Page actuelle -->
+            <li>
+                <span class="px-4 py-2 bg-blue-600 text-white rounded-lg">
+                    {{ products.number }}
+                </span>
+            </li>
+
+            {% if products.number < products.paginator.num_pages %}
+                <li>
+                    <a href="?page={{ products.paginator.num_pages }}#produits" 
+                       class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-blue-600 hover:text-white">
+                        {{ products.paginator.num_pages }}
+                    </a>
+                </li>
+            {% endif %}
+
+            {% if products.has_next %}
+                <li>
+                    <a href="?page={{ products.next_page_number }}#produits"
+                       class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+                        >
+                    </a>
+                </li>
+                <li>
+                    <a href="?page={{ products.paginator.num_pages }}#produits"
+                       class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+                        Dernière »
+                    </a>
+                </li>
+            {% endif %}
+
+        </ul>
+    </nav>
+</div>
+{% endif %}
+
+
+{% endblock %}

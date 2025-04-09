@@ -1,0 +1,473 @@
+{% extends 'base.html' %}
+
+{% block content %}
+  <div class="container mx-auto mt-8">
+
+    <div class="bg-white p-8 rounded-lg shadow-lg">
+      <h2 class="text-3xl font-semibold mb-6">{{ product.name }} - à {{ product.price_with_commission }} CDF{{ product.currency }}</h2>
+      
+<!-- Affichage de la moyenne des notes -->
+<div class="flex flex-col items-center my-4">
+  <h3 class="text-xl font-semibold mb-2">Note du produit</h3> <!-- Titre de la note -->
+  <div class="flex items-center justify-center my-2">
+      <p class="text-yellow-500">
+          {% for i in range_10 %}
+              {% if i <= average_rating %}
+                  &#9733;  <!-- Étoile remplie -->
+              {% else %}
+                  &#9734;  <!-- Étoile vide -->
+              {% endif %}
+          {% endfor %}
+      </p>
+  </div>
+  <p class="text-gray-500 text-sm">{{ average_rating|default:"0" }}/10</p>
+</div>
+      <!-- Affichage du nom du store et du lien vers le store -->
+      <div class="mb-4">
+        <p class="text-gray-600"><strong>{{ product.store.typestore }} : </strong>
+          <a href="{% url 'store_detail' product.store.slug %}" class="text-blue-500 font-semibold hover:underline">{{ product.store.name }}</a>
+        </p>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <div>
+          <img src="{{ product.image.url }}" alt="Image principale" class="w-full h-80 object-cover rounded-lg mb-4">
+        </div>
+        <div>
+          <p class="text-gray-600"><strong>Description : </strong>{{ product.description }}</p>
+          <p class="text-gray-600"><strong>Catégorie : </strong>{{ product.category }}</p>
+          <p class="text-gray-600"><strong>Stock : </strong>
+            {% if product.stock > 0 %}
+              {{ product.stock }} en stock
+            {% else %}
+              Rupture de stock
+            {% endif %}
+          </p>
+          
+        </div>
+      </div>
+      <form id="add-to-cart-form-{{ product.id }}" action="{% url 'add_to_cart_ajax' product.id %}" method="POST">
+        {% csrf_token %}
+        <button type="submit" class="px-6 py-2 bg-blue-500 text-white rounded-full text-lg hover:bg-blue-600 transition duration-300">
+          Ajouter au panier
+        </button>
+      </form>
+      
+      <!-- Bouton "Contacter pour ce produit" avec une marge supérieure -->
+      <a href="{% url 'contact_product' product.id %}" class="inline-block px-6 py-3 bg-green-600 text-white rounded-md hover:bg-green-800 transition duration-300 mt-4">
+        Contacter pour ce produit
+      </a>
+      
+    </div>
+  </div>
+
+  <!-- Affichage des images de la galerie dans le template -->
+  <h2 class="text-4xl font-semibold text-center mb-6">Galerie d'images du produit</h2>
+
+  <!-- Conteneur de la galerie avec padding -->
+  <div class="grid grid-cols-2 md:grid-cols-4 gap-6 p-4">
+      {% if product.photos.all.count == 0 %}
+          <p class="col-span-4 text-center text-gray-500">Aucune photo dans la galerie</p>
+      {% else %}
+          {% for photo in product.photos.all %}
+              <div class="photo">
+                  <img src="{{ photo.image.url }}" alt="Image de la galerie" class="rounded-lg cursor-pointer" onclick="openGallery('{{ photo.image.url }}')">
+              </div>
+          {% endfor %}
+      {% endif %}
+  </div>
+  
+  <!-- Modal pour afficher l'image en grand -->
+<!-- Modal pour afficher l'image en grand -->
+<div id="imageModal" class="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center hidden">
+    <span class="absolute top-4 right-4 text-white text-3xl cursor-pointer" onclick="closeGallery()">×</span>
+    <img id="modalImage" class="max-w-full max-h-screen p-4">
+    
+    <!-- Bouton Suivant (flèche droite) -->
+    <button class="absolute bottom-4 right-1/4 transform translate-x-1/4 text-white px-4 py-2 bg-blue-500 rounded" onclick="nextImage()"> > </button>
+    
+    <!-- Bouton Précédent (flèche gauche) -->
+    <button class="absolute bottom-4 left-1/4 transform -translate-x-1/4 text-white px-4 py-2 bg-blue-500 rounded" onclick="previousImage()"> < </button>
+</div>
+
+
+
+  {% comment %} <!-- Section des témoignages -->
+  <section id="temoignages" class="py-16 bg-gray-50">
+    <div class="container mx-auto">
+        <h2 class="text-3xl font-bold mb-8 text-center">Témoignages du produit</h2>
+  
+        <!-- Affichage des témoignages -->
+        <div class="flex flex-wrap gap-6 justify-center">
+            {% for testimonial in testimonials %}
+            <div class="bg-white p-6 rounded-xl shadow-md w-64">
+                <div class="flex items-center mb-4">
+                    <!-- Image de profil de l'utilisateur -->
+                    {% if testimonial.user.profile_pic %}
+                        <img src="{{ testimonial.user.profile_pic.url }}" alt="{{ testimonial.user.username }}" class="rounded-full w-12 h-12 mr-4">
+                    {% else %}
+                        <img src="https://bootdey.com/img/Content/avatar/avatar7.png" alt="Default Profile Picture" class="rounded-full w-12 h-12 mr-4">
+                    {% endif %}
+                    <h3 class="text-xl font-semibold">{{ testimonial.user.username }}</h3>
+                </div>
+  
+                <!-- Affichage de la note -->
+                <div class="mb-4">
+                    <p class="text-yellow-500">
+                        {% for i in range_10 %}
+                            {% if i <= testimonial.rating %}
+                                &#9733;  <!-- Étoile remplie -->
+                            {% else %}
+                                &#9734;  <!-- Étoile vide -->
+                            {% endif %}
+                        {% endfor %}
+                    </p>
+                    <p class="text-gray-500 text-sm">{{ testimonial.rating }}/10</p>  <!-- Affichage sous forme de chiffres -->
+                </div>
+  
+                <!-- Contenu du témoignage avec une hauteur limitée et une barre de défilement si nécessaire -->
+                <div class="text-gray-700 overflow-y-auto max-h-20">  <!-- Limite la hauteur à 10 lignes -->
+                    <p>{{ testimonial.content }}</p>
+                </div>
+            </div>
+            {% empty %}
+            <p>Aucun témoignage disponible.</p>
+            {% endfor %}
+        </div>
+  
+        <!-- Pagination des témoignages -->
+        {% if testimonials.has_other_pages %}
+<div class="mt-8">
+    <nav aria-label="Pagination des témoignages" class="flex justify-center">
+        <ul class="flex space-x-4">
+
+            {% if testimonials.has_previous %}
+            <li>
+                <a href="?page=1#temoignages" 
+                   class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    &laquo; Première
+                </a>
+            </li>
+            <li>
+                <a href="?page={{ testimonials.previous_page_number }}#temoignages" 
+                   class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    Précédente
+                </a>
+            </li>
+            {% endif %}
+
+            <!-- Page actuelle -->
+            <li>
+                <span class="px-4 py-2 bg-blue-600 text-white rounded-lg">
+                    {{ testimonials.number }}
+                </span>
+            </li>
+
+            {% if testimonials.has_next %}
+            <li>
+                <a href="?page={{ testimonials.next_page_number }}#temoignages" 
+                   class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    Suivante
+                </a>
+            </li>
+            <li>
+                <a href="?page={{ testimonials.paginator.num_pages }}#temoignages" 
+                   class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    Dernière &raquo;
+                </a>
+            </li>
+            {% endif %}
+
+        </ul>
+    </nav>
+</div>
+{% endif %}
+
+
+  
+        <!-- Bouton pour laisser un témoignage si l'utilisateur est connecté -->
+        {% if user.is_authenticated %}
+      <a href="{% url 'add_testimonialproduct' product.id %}" class="inline-block px-6 py-3 bg-green-600 text-white rounded-md hover:bg-green-800 transition duration-300 mt-8">
+          Laisser un témoignage
+      </a>
+      {% else %}
+      <p>Veuillez vous connecter pour laisser un témoignage.</p>
+      {% endif %}
+    </div>
+  </section> {% endcomment %}
+  <section id="temoignages" class="py-16 bg-gray-50">
+    <div class="max-w-6xl mx-auto px-4 text-center">
+      
+      {% if user.is_authenticated %}
+        <a href="{% url 'add_testimonialproduct' product.id %}" class="px-6 py-3 bg-green-600 text-white rounded-md hover:bg-green-800 transition duration-300 mb-6 inline-block">
+          Laisser un témoignage
+        </a>
+      {% else %}
+        <p class="text-center text-gray-600 mb-6">Veuillez vous connecter pour laisser un témoignage.</p>
+      {% endif %}
+  
+      <h2 class="text-3xl font-bold mb-4">Témoignages du produit</h2>
+      <h3 class="text-2xl font-semibold mb-10">{{ product.name }}</h3>
+  
+      {% if testimonials %}
+        <p class="text-gray-600 mb-10 text-sm">{{ testimonials|length }} témoignage{{ testimonials|length|pluralize }} pour ce produit</p>
+  
+        <!-- Carrousel Glide -->
+        <div class="relative w-full glide-03">
+          <div class="overflow-hidden" data-glide-el="track">
+            <ul class="flex p-0 m-0 gap-6">
+              {% for testimonial in testimonials %}
+              <li class="min-w-[250px] md:w-[calc(33.33%-24px)]">
+                <div class="bg-white p-6 rounded-xl shadow-md">
+                  <div class="text-center relative z-10">
+                    {% if testimonial.user.profile_pic %}
+                      <img src="{{ testimonial.user.profile_pic.url }}" alt="{{ testimonial.user.username }}" class="w-20 h-20 rounded-full mx-auto mb-4">
+                    {% else %}
+                      <img src="https://bootdey.com/img/Content/avatar/avatar7.png" alt="Default" class="w-20 h-20 rounded-full mx-auto mb-4">
+                    {% endif %}
+                    <h3 class="text-lg font-semibold">{{ testimonial.user.username }}</h3>
+                    <small class="text-blue-500 block mb-2">{{ testimonial.rating }}/10</small>
+  
+                    <div class="text-yellow-500 mb-4 text-xl">
+                      {% for i in range_10 %}
+                        {% if i <= testimonial.rating %}
+                          &#9733;
+                        {% else %}
+                          &#9734;
+                        {% endif %}
+                      {% endfor %}
+                    </div>
+  
+                    <div class="text-gray-700 overflow-y-auto max-h-20">
+                      <p>{{ testimonial.content }}</p>
+                    </div>
+                    <button 
+                      class="mt-4 text-blue-600 hover:underline text-sm font-medium"
+                      onclick="openModal('{{ testimonial.id }}')">
+                      Voir plus
+                    </button>
+                  </div>
+                </div>
+              </li>
+              {% endfor %}
+            </ul>
+          </div>
+  
+          <!-- Flèches de navigation -->
+          <div class="absolute top-1/2 left-0 right-0 flex justify-between items-center px-4 -translate-y-1/2" data-glide-el="controls">
+            <button data-glide-dir="<" class="w-10 h-10 bg-white rounded-full shadow hover:bg-gray-200 transition">&#9664;</button>
+            <button data-glide-dir=">" class="w-10 h-10 bg-white rounded-full shadow hover:bg-gray-200 transition">&#9654;</button>
+          </div>
+        </div>
+      {% else %}
+        <p class="text-gray-600 mt-6">Aucun témoignage pour le moment.</p>
+      {% endif %}
+    </div>
+  </section>
+  
+<!-- Modale -->
+<div id="testimonialModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50">
+    <div class="bg-white p-6 rounded-xl max-w-xl w-full relative">
+      <button onclick="closeModal()" class="absolute top-2 right-2 text-gray-500 hover:text-gray-700 text-xl">&times;</button>
+      <h3 id="modalUsername" class="text-lg font-bold mb-2"></h3>
+      <p id="modalRating" class="text-blue-500 mb-4 text-sm"></p>
+      <div id="modalContent" class="text-gray-800 text-left"></div>
+    </div>
+  </div>
+    
+  
+
+<!-- Affichage des produits de la même catégorie -->
+<section id="produits-categorie" class="py-16 bg-gray-100">
+    <h2 class="text-3xl font-semibold text-center mb-8">Produits similaires</h2>
+    <div class="flex flex-wrap gap-6 justify-center">
+        {% for product in related_products %}
+            <div class="flex-shrink-0 border-2 border-secondary bg-slate-100 text-black rounded-xl mb-6 cursor-pointer hover:scale-95 hover:bg-slate-200 transition duration-200 ease-linear w-64 h-full flex flex-col">
+                <div>
+                    <img src="{{ product.image.url }}" alt="{{ product.name }}" class="rounded-t-xl w-full h-40 object-cover" 
+                    onclick="showImagePopup('{{ product.image.url }}')"/>
+                </div>
+                <div class="flex flex-col justify-between flex-grow p-4">
+                    <!-- Bouton "Ajouter au panier" -->
+                    <form id="add-to-cart-form-{{ product.id }}" action="{% url 'add_to_cart_ajax' product.id %}" method="POST">
+                        {% csrf_token %}
+                        <button type="submit" class="px-6 py-2 bg-blue-500 text-white rounded-full text-lg hover:bg-blue-600 transition duration-300">
+                            Ajouter au panier
+                        </button>
+                    </form>
+
+                    <!-- Nom du produit et prix -->
+                    <div class="flex flex-col items-center my-4">
+                        <h1 class="font-semibold text-xl text-primary pt-2 text-center">{{ product.name }}</h1>
+                        <h2 class="font-medium text-lg text-center">{{ product.price }} CDF{{ product.store.currency }}</h2>
+                    </div>
+
+                    <!-- Bouton "Voir les détails" -->
+                    <a href="{% url 'product_detail' product.id %}" class="px-6 py-2 bg-blue-500 text-white rounded-full text-lg hover:bg-blue-600 transition duration-300">
+                        Voir les détails
+                    </a>
+                </div>
+            </div>
+        {% empty %}
+            <p>Aucun produit similaire trouvé.</p>
+        {% endfor %}
+    </div>
+
+    <!-- Pagination des produits -->
+     <!-- Pagination des produits -->
+{% if related_products.has_other_pages %}
+<div class="mt-8">
+    <nav aria-label="Pagination" class="flex justify-center">
+        <ul class="flex space-x-4">
+
+            {% if related_products.has_previous %}
+            <li>
+                <a href="?page=1#produits-categorie" 
+                   class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    &laquo; Première
+                </a>
+            </li>
+            <li>
+                <a href="?page={{ related_products.previous_page_number }}#produits-categorie" 
+                   class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <
+                </a>
+            </li>
+            {% endif %}
+
+            <!-- Page actuelle -->
+            <li>
+                <span class="px-4 py-2 bg-blue-600 text-white rounded-lg">
+                    {{ related_products.number }}
+                </span>
+            </li>
+
+            {% if related_products.has_next %}
+            <li>
+                <a href="?page={{ related_products.next_page_number }}#produits-categorie" 
+                   class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    >
+                </a>
+            </li>
+            <li>
+                <a href="?page={{ related_products.paginator.num_pages }}#produits-categorie" 
+                   class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    Dernière &raquo;
+                </a>
+            </li>
+            {% endif %}
+
+        </ul>
+    </nav>
+</div>
+{% endif %}
+
+     
+        </div>
+    
+</section>
+<!-- Popup pour afficher l'image agrandie -->
+<div id="imagePopup" class="fixed inset-0 bg-gray-800 bg-opacity-75 flex items-center justify-center hidden">
+    <div class="bg-white p-4 rounded-xl max-w-lg">
+        <span class="absolute top-0 right-0 p-3 cursor-pointer text-white bg-red-600 rounded-full text-3xl flex justify-center items-center" onclick="hideImagePopup()">X</span>
+        <img id="popupImage" src="" alt="Image agrandie" class="w-full h-auto rounded-lg">
+    </div>
+</div>
+  <script>
+  // JavaScript pour la lecture des images en galerie
+  
+  let images = [];
+  let currentIndex = 0;
+  
+  // Fonction pour ouvrir la galerie et afficher une image en grand
+  function openGallery(imageUrl) {
+      // Crée un tableau des URL des images
+      images = [{% for photo in product.photos.all %}'{{ photo.image.url }}',{% endfor %}];
+      
+      // Récupère l'index de l'image cliquée
+      currentIndex = images.indexOf(imageUrl);
+      
+      // Met l'URL de l'image dans le modal
+      document.getElementById('modalImage').src = imageUrl;
+      
+      // Affiche le modal
+      document.getElementById('imageModal').classList.remove('hidden');
+  }
+  
+  // Fonction pour fermer la galerie
+  function closeGallery() {
+      document.getElementById('imageModal').classList.add('hidden');
+  }
+  
+  // Fonction pour afficher l'image suivante dans la galerie
+  function nextImage() {
+      currentIndex = (currentIndex + 1) % images.length;
+      document.getElementById('modalImage').src = images[currentIndex];
+  }
+  
+  // Fonction pour afficher l'image précédente dans la galerie
+  function previousImage() {
+      currentIndex = (currentIndex - 1 + images.length) % images.length;
+      document.getElementById('modalImage').src = images[currentIndex];
+  }
+
+   // Afficher le popup avec l'image agrandie
+   function showImagePopup(imageUrl) {
+    document.getElementById('popupImage').src = imageUrl;
+    document.getElementById('imagePopup').classList.remove('hidden');
+}
+
+// Masquer le popup
+function hideImagePopup() {
+    document.getElementById('imagePopup').classList.add('hidden');
+}
+  </script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Glide.js/3.0.2/glide.js"></script>
+
+  <script>
+    // Glide init pour la section produit
+    var glide03 = new Glide('.glide-03', {
+      type: 'carousel',
+      focusAt: 'center',
+      perView: 3,
+      autoplay: 3000,
+      animationDuration: 700,
+      gap: 24,
+      classes: {
+        activeNav: '[&>*]:bg-slate-700',
+      },
+      breakpoints: {
+        1024: { perView: 2 },
+        640: { perView: 1 }
+      },
+    });
+  
+    glide03.mount();
+  </script>
+  
+  <script>
+    const testimonialsData = {
+      {% for t in testimonials %}
+        "{{ t.id }}": {
+          "username": "{{ t.user.username|escapejs }}",
+          "rating": "{{ t.rating }}/10",
+          "content": `{{ t.content|linebreaksbr|escapejs }}`
+        },
+      {% endfor %}
+    };
+  
+    function openModal(id) {
+      const data = testimonialsData[id];
+      document.getElementById("modalUsername").textContent = data.username;
+      document.getElementById("modalRating").textContent = data.rating;
+      document.getElementById("modalContent").innerHTML = data.content;
+      document.getElementById("testimonialModal").classList.remove("hidden");
+    }
+  
+    function closeModal() {
+      document.getElementById("testimonialModal").classList.add("hidden");
+    }
+  </script>
+  
+{% endblock %}

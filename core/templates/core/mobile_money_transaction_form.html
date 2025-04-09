@@ -1,0 +1,25 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mx-auto py-8">
+    <h1 class="text-2xl font-bold mb-4 text-center">Paiement Mobile Money</h1>
+
+    <form action="{% url 'mobile_money_payment' %}" method="POST">
+        {% csrf_token %}
+        
+        <div class="mb-4">
+            <label for="mobile_money_number" class="block text-lg font-medium">Numéro de téléphone Mobile Money</label>
+            <input type="text" name="mobile_money_number" id="mobile_money_number" required class="w-full p-2 border rounded-md">
+        </div>
+        
+        <div class="mb-4">
+            <label for="transaction_id" class="block text-lg font-medium">ID de la transaction</label>
+            <input type="text" name="transaction_id" id="transaction_id" required class="w-full p-2 border rounded-md">
+        </div>
+        
+        <div class="text-center">
+            <button type="submit" class="bg-blue-500 text-white px-6 py-3 rounded-lg hover:bg-blue-600">Soumettre la transaction</button>
+        </div>
+    </form>
+</div>
+{% endblock %}

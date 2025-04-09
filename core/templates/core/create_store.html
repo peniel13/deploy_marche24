@@ -1,0 +1,131 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="flex items-center justify-center min-h-screen bg-gray-100">
+    <div class="w-full max-w-md bg-white p-8 rounded-lg shadow-lg">
+        <h2 class="text-2xl font-semibold text-center text-gray-800 mb-6">Créer un Store</h2>
+
+        <!-- Affichage des messages de succès ou d'erreur -->
+        {% if messages %}
+        <div class="mb-4">
+            {% for message in messages %}
+                <div class="text-green-600 text-center">{{ message }}</div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <form method="POST" enctype="multipart/form-data" class="space-y-4">
+            {% csrf_token %}
+
+            <!-- Champ Nom -->
+            <div>
+                <label for="id_name" class="block text-sm font-medium text-gray-700">Nom du Store</label>
+                <input type="text" name="name" id="id_name" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Entrez le nom du store" value="{{ form.name.value }}">
+                {% for error in form.name.errors %}
+                    <p class="text-red-500 text-sm">{{ error }}</p>
+                {% endfor %}
+            </div>
+
+            <!-- Champ Description -->
+            <div>
+                <label for="id_description" class="block text-sm font-medium text-gray-700">Description du Store</label>
+                <textarea name="description" id="id_description" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Entrez la description du store">{{ form.description.value }}</textarea>
+                {% for error in form.description.errors %}
+                    <p class="text-red-500 text-sm">{{ error }}</p>
+                {% endfor %}
+            </div>
+
+            <!-- Champ Image -->
+            <div>
+                <label for="id_thumbnail" class="block text-sm font-medium text-gray-700">Image du Store</label>
+                <input type="file" name="thumbnail" id="id_thumbnail" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                {% for error in form.thumbnail.errors %}
+                    <p class="text-red-500 text-sm">{{ error }}</p>
+                {% endfor %}
+            </div>
+
+            <!-- Sélection Type de Store -->
+            <div>
+                <label for="id_typestore" class="block text-sm font-medium text-gray-700">Type de Store</label>
+                {{ form.typestore }}
+                {% for error in form.typestore.errors %}
+                    <p class="text-red-500 text-sm">{{ error }}</p>
+                {% endfor %}
+            </div>
+
+            <!-- Sélection Catégorie de Store -->
+            <div>
+                <label for="id_categorystore" class="block text-sm font-medium text-gray-700">Catégorie du Store</label>
+                <select name="categorystore" id="id_categorystore" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <option value="">Sélectionnez une catégorie</option>
+                    {% if form.instance.pk %}
+                        {% for category in form.fields.categorystore.queryset %}
+                            <option value="{{ category.id }}" {% if category.id == form.categorystore.value %}selected{% endif %}>{{ category.nom }}</option>
+                        {% endfor %}
+                    {% endif %}
+                </select>
+                {% for error in form.categorystore.errors %}
+                    <p class="text-red-500 text-sm">{{ error }}</p>
+                {% endfor %}
+            </div>
+            <!-- Champ Latitude -->
+            <div>
+                <label for="id_latitude" class="block text-sm font-medium text-gray-700">Latitude</label>
+                <input type="number" step="0.000001" name="latitude" id="id_latitude" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Latitude du store" value="{{ form.latitude.value }}">
+                {% for error in form.latitude.errors %}
+                    <p class="text-red-500 text-sm">{{ error }}</p>
+                {% endfor %}
+            </div>
+
+            <!-- Champ Longitude -->
+            <div>
+                <label for="id_longitude" class="block text-sm font-medium text-gray-700">Longitude</label>
+                <input type="number" step="0.000001" name="longitude" id="id_longitude" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Longitude du store" value="{{ form.longitude.value }}">
+                {% for error in form.longitude.errors %}
+                    <p class="text-red-500 text-sm">{{ error }}</p>
+                {% endfor %}
+            </div>
+
+            <!-- Champ Adresse -->
+            <div>
+                <label for="id_adresse" class="block text-sm font-medium text-gray-700">Adresse du Store</label>
+                <textarea name="adresse" id="id_adresse" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Entrez l'adresse du store">{{ form.adresse.value }}</textarea>
+                {% for error in form.adresse.errors %}
+                    <p class="text-red-500 text-sm">{{ error }}</p>
+                {% endfor %}
+            </div>
+            <!-- Bouton de Soumission -->
+            <div class="flex justify-between items-center">
+                <button type="submit" class="w-full py-2 px-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    Créer le Store
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Script AJAX -->
+<script src="https://code.jquery.com/jquery-3.3.1.min.js"></script>
+<script>
+    $(document).ready(function () {
+        const typestoreSelect = $("#id_typestore");
+        const categorystoreSelect = $("#id_categorystore");
+
+        // Lorsqu'un type de store est sélectionné
+        typestoreSelect.change(function () {
+            const typestoreId = $(this).val();  // Récupérer l'ID du type de store
+            const url = "{% url 'load_cellules' %}";  // URL de la vue AJAX
+
+            $.ajax({
+                url: url,
+                data: {
+                    'typestore_id': typestoreId  // Envoi de l'ID du type de store sélectionné
+                },
+                success: function (data) {
+                    categorystoreSelect.html(data);  // Mettre à jour les options des catégories
+                }
+            });
+        });
+    });
+</script>
+{% endblock %}

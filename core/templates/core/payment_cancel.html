@@ -1,0 +1,23 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mx-auto py-8">
+    <h1 class="text-2xl font-bold mb-4 text-center text-red-600">Paiement annulé</h1>
+
+    <div class="bg-white p-6 rounded-lg shadow-md">
+        <p class="text-center text-lg text-gray-700">Le paiement a été annulé. Si vous avez des questions ou si vous souhaitez réessayer, veuillez contacter notre support.</p>
+        
+        <div class="mt-6 text-center">
+            <a href="{% url 'cart_detail' %}" class="bg-gray-500 text-white px-6 py-3 rounded-lg hover:bg-gray-600 transition duration-300">
+                Retourner au panier
+            </a>
+        </div>
+
+        <div class="mt-4 text-center">
+            <a href="{% url 'index' %}" class="text-blue-500 hover:text-blue-700 transition duration-300">
+                Revenir à la boutique
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

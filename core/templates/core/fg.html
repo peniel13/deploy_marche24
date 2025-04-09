@@ -1,0 +1,828 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block content %}
+<!-- Header section avec l'image de fond -->
+<section class="relative bg-cover bg-center h-96" style="background-image: url('{{ store.thumbnail.url }}');">
+    <div class="absolute inset-0 bg-gray-800 opacity-50"></div>
+    <div class="container mx-auto h-full flex items-center justify-center relative z-10 px-4">
+        <div class="text-center text-white">
+            <!-- Utilisation de classes responsive pour adapter la taille du texte -->
+            <h1 class="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold">Bienvenue sur {{ store.typestore }} : {{ store.name }}</h1>
+            <p class="text-lg sm:text-2xl mt-2">{{ store.commune }}</p>
+
+            <!-- Affichage des autres informations directement dans le header -->
+            <div class="mt-4 text-lg">
+                <p><strong>Description :</strong> {{ store.description }}</p>
+                <p><strong>Adresse :</strong> {{ store.adresse }}</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+
+<!-- Boutons pour créer une catégorie et un produit -->
+{% if store.owner == user %}
+<div class="container mx-auto mt-8 text-center">
+    <div class="flex flex-col sm:flex-row justify-center gap-4">
+        <!-- Lien vers la création d'une catégorie -->
+        <a href="{% url 'create_category' store.slug %}" 
+           class="w-auto px-4 py-2 sm:px-6 sm:py-3 text-white bg-green-600 hover:bg-green-800 rounded-md transition duration-300 mx-auto sm:mx-0">
+            Créer une catégorie
+        </a>
+
+        <!-- Lien vers la création d'un produit -->
+        <a href="{% url 'create_product' store.slug %}" 
+           class="w-auto px-4 py-2 sm:px-6 sm:py-3 text-white bg-blue-600 hover:bg-blue-800 rounded-md transition duration-300 mx-auto sm:mx-0">
+            Créer un produit
+        </a>
+
+        <!-- Lien vers la gestion des produits -->
+        <a href="{% url 'manage_product_store' store.slug %}" 
+           class="w-auto px-4 py-2 sm:px-6 sm:py-3 text-white bg-yellow-500 hover:bg-yellow-600 rounded-md transition duration-300 mx-auto sm:mx-0">
+            Manager vos produits
+        </a>
+        <a href="{% url 'assign_category' store.id %}" 
+           class="w-auto px-4 py-2 sm:px-6 sm:py-3 text-white bg-blue-600 hover:bg-blue-800 rounded-md transition duration-300 mx-auto sm:mx-0">
+           Assigner une catégorie à un produit
+        </a>
+        <a href="{% url 'add_or_update_spotpub' store.slug %}" 
+   class="w-auto px-4 py-2 sm:px-6 sm:py-3 text-white bg-green-600 hover:bg-green-800 rounded-md transition duration-300 mx-auto sm:mx-0">
+   Ajouter ou Modifier le Spot Pub
+</a>
+
+    </div>
+</div>
+
+{% comment %} <div class="container mx-auto mt-8 text-center">
+    <div class="flex flex-col sm:flex-row justify-center gap-4">
+        <!-- Lien vers la création d'une catégorie -->
+        <a href="{% url 'create_category' store.slug %}" class="inline-block px-6 py-3 text-white bg-green-600 hover:bg-green-800 rounded-md transition duration-300">
+            Créer une catégorie
+        </a>
+
+        <!-- Lien vers la création d'un produit -->
+        <a href="{% url 'create_product' store.slug %}" class="inline-block px-6 py-3 text-white bg-blue-600 hover:bg-blue-800 rounded-md transition duration-300">
+            Créer un produit
+        </a>
+
+        <!-- Lien vers la gestion des produits -->
+        <a href="{% url 'manage_product_store' store.slug %}" class="inline-block px-6 py-3 text-white bg-yellow-500 hover:bg-yellow-600 rounded-md transition duration-300">
+            Manager vos produits
+        </a>
+    </div>
+</div> {% endcomment %}
+
+{% endif %}
+<!-- Formulaire de recherche et filtres -->
+<section class="container mx-auto mt-8 px-4">
+    <h2 class="text-3xl font-bold mb-4">
+        Produits du store  {{ store.name }} : 
+        <span class="text-xl font-semibold text-gray-800">
+            ({{ total_products }}produits, {{ category_count }} catégories)
+        </span>
+        
+    </h2>
+    
+    <!-- Formulaire de recherche et filtres pour desktop -->
+    <section id="search" class="hidden sm:block">
+        <form method="GET" action="#produits" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div class="flex flex-col">
+                <label for="nom" class="text-lg font-semibold">Nom du produit</label>
+                <input type="text" name="nom" value="{{ product_name }}" placeholder="Rechercher par nom" class="px-4 py-2 border border-gray-300 rounded-lg">
+            </div>
+            
+            <div class="flex flex-col">
+                <label for="categorie" class="text-lg font-semibold">Catégorie</label>
+                <select name="categorie" class="px-4 py-2 border border-gray-300 rounded-lg">
+                    <option value="">Toutes</option>
+                    {% for category in categories %}
+                        <option value="{{ category.id }}" {% if category_filter == category.id|stringformat:"s" %}selected{% endif %}>{{ category.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        
+            <div class="flex flex-col">
+                <label for="prix_min" class="text-lg font-semibold">Prix min</label>
+                <input type="number" name="prix_min" value="{{ prix_min }}" placeholder="Prix minimum" class="px-4 py-2 border border-gray-300 rounded-lg">
+            </div>
+        
+            <div class="flex flex-col">
+                <label for="prix_max" class="text-lg font-semibold">Prix max</label>
+                <input type="number" name="prix_max" value="{{ prix_max }}" placeholder="Prix maximum" class="px-4 py-2 border border-gray-300 rounded-lg">
+            </div>
+        
+            <div class="flex justify-center items-end sm:col-span-2 lg:col-span-4 mt-6">
+                <button type="submit" class="px-6 py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 w-full sm:w-auto">
+                    Rechercher
+                </button>
+            </div>
+        </form>
+    </section>
+
+    <!-- Formulaire de recherche et filtres pour mobile -->
+    <section id="search-slide" class="sm:hidden fixed top-0 left-0 w-full bg-gray-900 bg-opacity-75 z-50 hidden">
+        <div class="flex justify-between items-center p-4">
+            <h2 class="text-white font-semibold">Filtres de recherche</h2>
+            <button id="close-slide" class="text-white">X</button>
+        </div>
+        <form method="GET" action="#produits" class="p-4 bg-white">
+            <div class="flex flex-col mb-4">
+                <label for="nom" class="text-lg font-semibold">Nom du produit</label>
+                <input type="text" name="nom" value="{{ product_name }}" placeholder="Rechercher par nom" class="px-4 py-2 border border-gray-300 rounded-lg">
+            </div>
+            
+            <div class="flex flex-col mb-4">
+                <label for="categorie" class="text-lg font-semibold">Catégorie</label>
+                <select name="categorie" class="px-4 py-2 border border-gray-300 rounded-lg">
+                    <option value="">Toutes</option>
+                    {% for category in categories %}
+                        <option value="{{ category.id }}" {% if category_filter == category.id|stringformat:"s" %}selected{% endif %}>{{ category.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        
+            <div class="flex flex-col mb-4">
+                <label for="prix_min" class="text-lg font-semibold">Prix min</label>
+                <input type="number" name="prix_min" value="{{ prix_min }}" placeholder="Prix minimum" class="px-4 py-2 border border-gray-300 rounded-lg">
+            </div>
+        
+            <div class="flex flex-col mb-4">
+                <label for="prix_max" class="text-lg font-semibold">Prix max</label>
+                <input type="number" name="prix_max" value="{{ prix_max }}" placeholder="Prix maximum" class="px-4 py-2 border border-gray-300 rounded-lg">
+            </div>
+        
+            <div class="flex justify-center items-end">
+                <button type="submit" class="px-6 py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 w-full">
+                    Rechercher
+                </button>
+            </div>
+        </form>
+    </section>
+
+    <!-- Bouton pour afficher la recherche mobile -->
+    <!-- Bouton pour ouvrir les filtres (mobile) -->
+    <div class="sm:hidden text-center mt-4 mb-8">
+        <button id="open-slide" class="px-6 py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 w-full">
+            Ouvrir recherche rapide
+        </button>
+    </div>
+</section>
+
+<!-- Affichage des produits -->
+<section id="produits" class="py-16 bg-gray-100">
+    <div class="flex flex-wrap gap-6 justify-center">
+        {% for product in products %}
+        <div class="flex-shrink-0 border-2 border-secondary bg-slate-100 text-black rounded-xl mb-6 cursor-pointer 
+            hover:scale-105 hover:shadow-lg transition-transform duration-300 ease-linear w-64 h-full flex flex-col">
+            <div>
+                <img src="{{ product.image.url }}" alt="{{ product.name }}" class="rounded-t-xl w-full h-40 object-cover" 
+                onclick="showImagePopup('{{ product.image.url }}')"/>
+            </div>
+            <div class="flex flex-col justify-between flex-grow p-4">
+                <!-- Formulaire d'ajout au panier -->
+                <form id="add-to-cart-form-{{ product.id }}" action="{% url 'add_to_cart_ajax' product.id %}" method="POST">
+                    {% csrf_token %}
+                    <button type="submit" class="px-6 py-2 bg-blue-500 text-white rounded-full text-lg hover:bg-blue-600 transition duration-300">
+                        Ajouter au panier
+                    </button>
+                </form>
+
+                <!-- Nom du produit et prix -->
+                <div class="flex flex-col items-center my-4">
+                    <h1 class="font-semibold text-xl text-primary pt-2 text-center">{{ product.name }}</h1>
+                    <h2 class="font-medium text-lg text-center">{{ product.price_with_commission }} CDF{{ product.store.currency }}</h2>
+                </div>
+
+                <!-- Affichage des étoiles de la note moyenne -->
+                <div class="flex items-center justify-center my-2">
+                    <p class="text-yellow-500">
+                        {% for i in range_10 %}
+                            {% if i <= product.average_rating %}
+                                &#9733;  <!-- Étoile remplie -->
+                            {% else %}
+                                &#9734;  <!-- Étoile vide -->
+                            {% endif %}
+                        {% endfor %}
+                    </p>
+                    <p class="text-gray-500 text-sm">Note moyenne: {{ product.average_rating|default:"0" }}/10</p>
+                </div>
+
+                <!-- Bouton "Voir les détails" -->
+                <a href="{% url 'product_detail' product.id %}" class="px-6 py-2 bg-blue-500 text-white rounded-full text-lg hover:bg-blue-600 transition duration-300">
+                    Voir les détails
+                </a>
+            </div>
+        </div>
+        {% empty %}
+        <p>Aucun produit trouvé pour cette recherche.</p>
+        {% endfor %}
+
+    </div>
+
+    <!-- Pagination -->
+    {% if products.has_other_pages %}
+    <div class="mt-8">
+        <nav aria-label="Pagination des produits" class="flex justify-center">
+            <ul class="flex space-x-4">
+                
+                {% if products.has_previous %}
+                <li>
+                    <a href="?page=1#produits" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+                        &laquo; Première
+                    </a>
+                </li>
+                <li>
+                    <a href="?page={{ products.previous_page_number }}#produits" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+                        <
+                    </a>
+                </li>
+                {% endif %}
+
+                <!-- Affichage de la page actuelle -->
+                <li>
+                    <span class="px-4 py-2 bg-blue-600 text-white rounded-lg">
+                        {{ products.number }}
+                    </span>
+                </li>
+
+                {% if products.number < products.paginator.num_pages %}
+                <li>
+                    <a href="?page={{ products.paginator.num_pages }}#produits" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-blue-600 hover:text-white">
+                        {{ products.paginator.num_pages }}
+                    </a>
+                </li>
+                {% endif %}
+
+                {% if products.has_next %}
+                <li>
+                    <a href="?page={{ products.next_page_number }}#produits" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+                        >
+                    </a>
+                </li>
+                <li>
+                    <a href="?page={{ products.paginator.num_pages }}#produits" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+                        Dernière &raquo;
+                    </a>
+                </li>
+                {% endif %}
+            </ul>
+        </nav>
+    </div>
+{% endif %}
+
+
+
+
+</section>
+
+{% if store.spot_pub and store.spot_pub.video %}
+<section class="my-10 bg-white rounded-lg shadow p-6">
+    <h2 class="text-xl font-semibold mb-4 text-gray-800">Spot Publicitaire de {{ store.name }}</h2>
+    
+    <video 
+        class="w-full rounded-md shadow cursor-pointer" 
+        autoplay 
+        muted 
+        loop 
+        playsinline 
+        preload="auto"
+        onclick="openModal('{{ store.spot_pub.video.url }}')"
+    >
+        <source src="{{ store.spot_pub.video.url }}" type="video/mp4">
+        Votre navigateur ne supporte pas la lecture de vidéo.
+    </video>
+</section>
+
+<!-- Modal -->
+<div id="videoModal" class="fixed inset-0 bg-black bg-opacity-60 flex justify-center items-center hidden">
+    <div class="relative w-3/4 bg-white p-6 rounded-lg">
+        <button onclick="closeModal()" class="absolute top-2 right-2 text-white bg-black p-2 rounded-full">X</button>
+        <video id="modalVideo" class="w-full" controls autoplay>
+            <source id="modalVideoSource" src="" type="video/mp4">
+            Votre navigateur ne supporte pas la lecture de vidéo.
+        </video>
+    </div>
+</div>
+</section>
+{% endif %}
+
+<script>
+    function openModal(videoUrl) {
+        // Mise à jour du source de la vidéo dans le modal
+        document.getElementById('modalVideoSource').src = videoUrl;
+        const videoElement = document.getElementById('modalVideo');
+        
+        // Assurez-vous que la vidéo est bien chargée avant de commencer la lecture
+        videoElement.load();  // Recharger la vidéo
+        videoElement.play();  // Lire la vidéo automatiquement
+
+        // Affichage du modal
+        document.getElementById('videoModal').classList.remove('hidden');
+    }
+
+    function closeModal() {
+        // Fermer le modal
+        document.getElementById('videoModal').classList.add('hidden');
+        
+        // Mettre en pause la vidéo lorsque le modal est fermé
+        const videoElement = document.getElementById('modalVideo');
+        videoElement.pause();
+    }
+</script>
+
+
+ <!-- Section des témoignages -->
+ <section id="temoignages" class="py-16 bg-gray-50">
+    <div class="max-w-6xl mx-auto px-4 text-center">
+      
+      <!-- Boutons -->
+      <div class="flex flex-col sm:flex-row justify-center items-center gap-4 mb-8">
+        <a href="{% url 'contact_store' store.slug %}" class="px-6 py-3 bg-blue-600 text-white rounded-md hover:bg-blue-800 transition duration-300">
+          Contacter {{ store.name }}
+        </a>
+        {% if user.is_authenticated %}
+          <a href="{% url 'add_testimonial' store.slug %}" class="px-6 py-3 bg-green-600 text-white rounded-md hover:bg-green-800 transition duration-300">
+            Laisser un témoignage
+          </a>
+        {% else %}
+          <p class="text-center text-gray-600">Veuillez vous connecter pour laisser un témoignage.</p>
+        {% endif %}
+      </div>
+  
+      <h2 class="text-3xl font-bold mb-4">Témoignages du {{ store.typestore }}</h2>
+      <h3 class="text-2xl font-semibold mb-10">{{ store.name }}</h3>
+  
+      {% if testimonials %}
+        <p class="text-gray-600 mb-10 text-sm">
+          {{ testimonials|length }} témoignage{{ testimonials|length|pluralize }} pour cette boutique
+        </p>
+  
+        <!-- Carrousel témoignages Glide -->
+        <div class="relative w-full glide-02">
+          <div class="overflow-hidden" data-glide-el="track">
+            <ul class="flex p-0 m-0 gap-6">
+              {% for testimonial in testimonials %}
+              <li class="min-w-[250px] md:w-[calc(33.33%-24px)]">
+                <div class="bg-white p-6 rounded-xl shadow-md">
+                  <div class="text-center relative z-10">
+                    {% if testimonial.user.profile_pic %}
+                      <img src="{{ testimonial.user.profile_pic.url }}" alt="{{ testimonial.user.username }}" class="w-20 h-20 rounded-full mx-auto mb-4">
+                    {% else %}
+                      <img src="https://bootdey.com/img/Content/avatar/avatar7.png" alt="Default" class="w-20 h-20 rounded-full mx-auto mb-4">
+                    {% endif %}
+                    <h3 class="text-lg font-semibold">{{ testimonial.user.username }}</h3>
+                    <small class="text-blue-500 block mb-2">{{ testimonial.rating }}/10</small>
+  
+                    <div class="text-yellow-500 mb-4 text-xl">
+                      {% for i in range_10 %}
+                        {% if i <= testimonial.rating %}
+                          &#9733;
+                        {% else %}
+                          &#9734;
+                        {% endif %}
+                      {% endfor %}
+                    </div>
+  
+                    <div class="text-gray-700 overflow-y-auto max-h-20">
+                      <p>{{ testimonial.content }}</p>
+                    </div>
+                    <button 
+                      class="mt-4 text-blue-600 hover:underline text-sm font-medium"
+                      onclick="openModal('{{ testimonial.id }}')">
+                      Voir plus
+                    </button>
+                  </div>
+                </div>
+              </li>
+              {% endfor %}
+            </ul>
+          </div>
+  
+          <!-- Flèches de navigation -->
+          <div class="absolute top-1/2 left-0 right-0 flex justify-between items-center px-4 -translate-y-1/2" data-glide-el="controls">
+            <button data-glide-dir="<" class="w-10 h-10 bg-white rounded-full shadow flex items-center justify-center hover:bg-gray-200 transition">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+              </svg>
+            </button>
+            <button data-glide-dir=">" class="w-10 h-10 bg-white rounded-full shadow flex items-center justify-center hover:bg-gray-200 transition">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+              </svg>
+            </button>
+          </div>
+        </div>
+      {% else %}
+        <p class="text-gray-600 mt-6">Aucun témoignage pour le moment.</p>
+      {% endif %}
+    </div>
+  </section>
+  
+  
+  
+
+{% if store.owner == user %}
+<h2 class="text-3xl font-bold text-center mb-8">Les Ventes par Date</h2>
+
+<!-- Formulaire de recherche par date -->
+<form method="get" class="mb-4 text-center" action="#formulaire">
+    <input type="date" name="order_date" value="{{ order_date|date:'Y-m-d' }}" class="px-4 py-2 border border-gray-300 rounded-lg" id="order_date_input" />
+    <button type="submit" class="px-6 py-2 bg-blue-600 text-white rounded-lg">Rechercher</button>
+</form>
+
+<!-- Section qui affiche les résultats de la recherche -->
+                <div id="formulaire">
+                    {% if orders_by_date %}
+                        <div class="overflow-x-auto">
+                            <table class="min-w-full table-auto bg-white shadow-lg rounded-lg">
+                                <thead class="bg-blue-600 text-white">
+                                    <tr>
+                                        <th class="px-6 py-3 text-left">Date</th>
+                                        <th class="px-6 py-3 text-left">Nombre de Commandes</th>
+                                        <th class="px-6 py-3 text-left">Montant Total</th>
+                                        <th class="px-6 py-3 text-left">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for date_info in orders_by_date %}
+                                        <tr class="border-t">
+                                            <td class="px-6 py-4">{{ date_info.order_date }}</td>
+                                            <td class="px-6 py-4">{{ date_info.total_orders }}</td>
+                                            <td class="px-6 py-4">{{ date_info.total_amount_sum|floatformat:2 }} CDF</td>
+                                            <td class="px-6 py-4">
+                                                <a href="{% url 'orders_by_date_detail' store.slug date_info.order_date %}" class="text-blue-600 hover:text-blue-800">Voir les commandes</a>
+                                            </td>
+                                        </tr>
+                                    {% empty %}
+                                        <tr>
+                                            <td colspan="4" class="text-center py-4">Aucune commande trouvée pour cette date.</td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                   
+                
+        
+        <!-- Pagination -->
+        <!-- Pagination -->
+        {% comment %} {% if orders_by_date.has_other_pages %}
+        <div class="mt-8 mb-12"> <!-- Ajout de mb-12 pour éviter que la pagination touche le footer -->
+            <nav aria-label="Pagination des commandes par date" class="flex justify-center">
+                <ul class="flex space-x-4">
+
+                    {% if orders_by_date.has_previous %}
+                    <li>
+                        <a href="?page={{ orders_by_date.previous_page_number }}" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            < Précédente
+                        </a>
+                    </li>
+                    {% endif %}
+
+                    <!-- Affichage de la page actuelle -->
+                    <li>
+                        <span class="px-4 py-2 bg-blue-600 text-white rounded-lg">
+                            {{ orders_by_date.number }}
+                        </span>
+                    </li>
+
+                    {% if orders_by_date.has_next %}
+                    <li>
+                        <a href="?page={{ orders_by_date.next_page_number }}" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            Suivante >
+                        </a>
+                    </li>
+                    {% endif %}
+
+                </ul>
+            </nav>
+        </div>
+        {% endif %} {% endcomment %}
+    
+    
+    {% else %}
+        <p class="text-center text-lg text-gray-600">Vous n'avez pas encore de commandes.</p>
+    {% endif %}
+</div>
+{% endif %}
+    
+<!-- Modal de confirmation d'ajout au panier -->
+<!-- Modal de confirmation d'ajout au panier -->
+<div id="add-to-cart-modal" class="fixed inset-0 bg-gray-800 bg-opacity-50 z-50 hidden justify-center items-center">
+    <div class="bg-white rounded-lg p-6 text-center max-w-sm mx-auto">
+        <h2 class="text-xl font-semibold text-green-600">Produit ajouté au panier !</h2>
+        <p class="text-gray-700 mt-2">Le produit a été ajouté avec succès à votre panier.</p>
+        <button id="close-modal" class="mt-4 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
+            Fermer
+        </button>
+    </div>
+</div>
+<!-- Popup pour afficher l'image agrandie -->
+<div id="imagePopup" class="fixed inset-0 bg-gray-800 bg-opacity-75 flex items-center justify-center hidden">
+    <div class="bg-white p-4 rounded-xl max-w-lg">
+        <span class="absolute top-0 right-0 p-3 cursor-pointer text-white bg-red-600 rounded-full text-3xl flex justify-center items-center" onclick="hideImagePopup()">X</span>
+        <img id="popupImage" src="" alt="Image agrandie" class="w-full h-auto rounded-lg">
+    </div>
+</div>
+<!-- Modal de témoignage -->
+<div id="testimonialModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+    <div class="bg-white w-full max-w-lg rounded-lg p-6 relative">
+      <button onclick="closeModal()" class="absolute top-2 right-3 text-gray-600 hover:text-red-500 text-2xl">&times;</button>
+      <h3 class="text-xl font-bold mb-2" id="modalUsername"></h3>
+      <p class="text-sm text-blue-500 mb-4" id="modalRating"> cotation</p>
+      <p class="text-gray-700 leading-relaxed text-sm" id="modalContent"></p>
+    </div>
+  </div>
+  
+<script>
+    // Sélectionner tous les formulaires d'ajout au panier
+    document.querySelectorAll('.add-to-cart-form').forEach(form => {
+        form.addEventListener('submit', function(event) {
+            event.preventDefault(); // Empêche le comportement par défaut du formulaire
+
+            const url = form.action;
+            const data = new FormData(form);
+
+            // Envoyer la requête AJAX
+            fetch(url, {
+                method: 'POST',
+                body: data
+            })
+            .then(response => response.json())
+            .then(data => {
+                // Mettre à jour le nombre d'articles dans le panier
+                document.getElementById('cart-items-count').textContent = data.total_items;
+                document.getElementById('cart-total-price').textContent = data.total_price + " CDF";
+
+                // Afficher le modal de confirmation
+                document.getElementById('add-to-cart-modal').classList.remove('hidden');
+            })
+            .catch(error => console.error('Erreur:', error));
+        });
+    });
+
+    // Fermer le modal
+    document.getElementById('close-modal').addEventListener('click', function() {
+        document.getElementById('add-to-cart-modal').classList.add('hidden');
+    });
+</script>
+
+
+<script>
+    document.getElementById('open-slide').addEventListener('click', function() {
+        document.getElementById('search-slide').classList.remove('hidden');
+    });
+
+    document.getElementById('close-slide').addEventListener('click', function() {
+        document.getElementById('search-slide').classList.add('hidden');
+    });
+    // Afficher le popup avec l'image agrandie
+   function showImagePopup(imageUrl) {
+    document.getElementById('popupImage').src = imageUrl;
+    document.getElementById('imagePopup').classList.remove('hidden');
+}
+
+// Masquer le popup
+function hideImagePopup() {
+    document.getElementById('imagePopup').classList.add('hidden');
+}
+</script>
+{% comment %} iii {% endcomment %}
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Glide.js/3.0.2/glide.js"></script>
+
+<script>
+  var glide02 = new Glide('.glide-02', {
+    type: 'carousel',
+    focusAt: 'center',
+    perView: 3,
+    autoplay: 3000,
+    animationDuration: 700,
+    gap: 24,
+    classes: {
+      activeNav: '[&>*]:bg-slate-700',
+    },
+    breakpoints: {
+      1024: {
+        perView: 2
+      },
+      640: {
+        perView: 1
+      }
+    },
+  });
+
+  glide02.mount();
+</script>
+
+<!-- JS Slide Search -->
+<script>
+  const openSlideButton = document.getElementById('open-slide');
+  const searchSlide = document.getElementById('search-slide');
+  const closeSlideButton = document.getElementById('close-slide');
+
+  openSlideButton?.addEventListener('click', () => {
+    searchSlide?.classList.remove('hidden');
+  });
+
+  closeSlideButton?.addEventListener('click', () => {
+    searchSlide?.classList.add('hidden');
+  });
+</script>
+
+<!-- Pause scroll au survol (si utilisé ailleurs) -->
+<script>
+  const scrollingContainer = document.getElementById("scrollingStores");
+
+  if (scrollingContainer) {
+    scrollingContainer.addEventListener("mouseover", function() {
+      scrollingContainer.style.animationPlayState = "paused";
+    });
+
+    scrollingContainer.addEventListener("mouseleave", function() {
+      scrollingContainer.style.animationPlayState = "running";
+    });
+  }
+</script>
+{% comment %} deuxieme {% endcomment %}
+<script>
+    const testimonialsData = {
+      {% for t in testimonials %}
+        "{{ t.id }}": {
+          "username": "{{ t.user.username|escapejs }}",
+          "rating": "{{ t.rating }}/10",
+          "content": `{{ t.content|linebreaksbr|escapejs }}`
+        },
+      {% endfor %}
+    };
+  
+    function openModal(id) {
+      const data = testimonialsData[id];
+      document.getElementById("modalUsername").textContent = data.username;
+      document.getElementById("modalRating").textContent = data.rating;
+      document.getElementById("modalContent").innerHTML = data.content;
+      document.getElementById("testimonialModal").classList.remove("hidden");
+    }
+  
+    function closeModal() {
+      document.getElementById("testimonialModal").classList.add("hidden");
+    }
+  </script>
+
+{% endblock %}
+
+
+
+
+
+
+{% comment %} {% extends "base.html" %}
+{% load static %}
+
+{% block content %}
+<!-- Header section avec l'image de fond -->
+<section class="relative bg-cover bg-center h-96" style="background-image: url('{{ store.thumbnail.url }}');">
+    <div class="absolute inset-0 bg-gray-800 opacity-50"></div>
+    <div class="container mx-auto h-full flex items-center justify-center relative z-10">
+        <div class="text-center text-white">
+            <h1 class="text-5xl font-bold">{{ store.name }}</h1>
+            <p class="text-2xl mt-2">{{ store.commune }}</p>
+
+            <!-- Affichage des autres informations directement dans le header -->
+            <div class="mt-4 text-lg">
+                <p><strong>Description :</strong> {{ store.description }}</p>
+                <p><strong>Créé le :</strong> {{ store.created_at|date:"d M Y" }}</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Boutons pour créer une catégorie et un produit -->
+<div class="container mx-auto mt-8 text-center">
+    <div class="flex justify-center gap-4">
+        <!-- Lien vers la création d'une catégorie -->
+        <a href="{% url 'create_category' store.slug %}" class="inline-block px-6 py-3 text-white bg-green-600 hover:bg-green-800 rounded-md transition duration-300">
+            Créer une catégorie
+        </a>
+
+        <!-- Lien vers la création d'un produit -->
+        <a href="{% url 'create_product' store.slug %}" class="inline-block px-6 py-3 text-white bg-blue-600 hover:bg-blue-800 rounded-md transition duration-300">
+            Créer un produit
+        </a>
+    </div>
+</div>
+<section class="container mx-auto mt-8 px-4">
+    <h2 class="text-3xl font-bold mb-4">Produits du magasin : {{ store.name }}</h2>
+    
+    <!-- Formulaire de recherche et filtres -->
+    <form method="GET" action="#produits" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 relative">
+        <div class="flex flex-col">
+            <label for="nom" class="text-lg font-semibold">Nom du produit</label>
+            <input type="text" name="nom" value="{{ product_name }}" placeholder="Rechercher par nom" class="px-4 py-2 border border-gray-300 rounded-lg">
+        </div>
+        
+        <div class="flex flex-col">
+            <label for="categorie" class="text-lg font-semibold">Catégorie</label>
+            <select name="categorie" class="px-4 py-2 border border-gray-300 rounded-lg">
+                <option value="">Toutes</option>
+                {% for category in categories %}
+                    <option value="{{ category.id }}" {% if category_filter == category.id|stringformat:"s" %}selected{% endif %}>{{ category.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+    
+        <div class="flex flex-col">
+            <label for="prix_min" class="text-lg font-semibold">Prix min</label>
+            <input type="number" name="prix_min" value="{{ prix_min }}" placeholder="Prix minimum" class="px-4 py-2 border border-gray-300 rounded-lg">
+        </div>
+    
+        <div class="flex flex-col">
+            <label for="prix_max" class="text-lg font-semibold">Prix max</label>
+            <input type="number" name="prix_max" value="{{ prix_max }}" placeholder="Prix maximum" class="px-4 py-2 border border-gray-300 rounded-lg">
+        </div>
+    
+        <div class="flex justify-center items-end sm:col-span-2 lg:col-span-4 mt-6">
+            <button type="submit" class="px-6 py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 w-full sm:w-auto">
+                Rechercher
+            </button>
+        </div>
+    </form>
+    
+   
+
+
+</section>
+
+<!-- Affichage des produits -->
+<section id="produits" class="py-16 bg-gray-100">
+    <div class="flex flex-wrap gap-6 justify-center">
+        {% for product in products %}
+        <div class="flex-shrink-0 border-2 border-secondary bg-slate-100 text-black rounded-xl mb-6 cursor-pointer hover:scale-95 hover:bg-slate-200 transition duration-200 ease-linear w-64">
+            <div>
+                <img src="{{ product.image.url }}" alt="{{ product.name }}" class="rounded-t-xl w-full h-40 object-cover" />
+            </div>
+            <div class="flex flex-col justify-center items-center p-4">
+                <h1 class="font-semibold text-xl text-primary pt-2">{{ product.name }}</h1>
+                <h2 class="font-medium text-lg">{{ product.price }} {{ product.store.currency }}</h2>
+                <div class="mt-4">
+                    <a href="" class="px-6 py-2 bg-blue-500 text-white rounded-full text-lg hover:bg-blue-600 transition duration-300">
+                        Voir les détails
+                    </a>
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <p>Aucun produit trouvé pour cette recherche.</p>
+        {% endfor %}
+    </div>
+
+    <!-- Pagination -->
+    {% if products.has_other_pages %}
+    <div class="mt-8">
+        <nav aria-label="Pagination" class="flex justify-center">
+            <ul class="flex space-x-4">
+                {% if products.has_previous %}
+                <li>
+                    <a href="?page=1" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500">&laquo; Première</a>
+                </li>
+                <li>
+                    <a href="?page={{ products.previous_page_number }}" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500">Précédente</a>
+                </li>
+                {% endif %}
+                {% for page in products.paginator.page_range %}
+                <li>
+                    {% if page == products.number %}
+                    <a href="?page={{ page }}" class="px-4 py-2 bg-blue-600 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">{{ page }}</a>
+                    {% else %}
+                    <a href="?page={{ page }}" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-blue-600 hover:text-white focus:outline-none focus:ring-2 focus:ring-blue-500">{{ page }}</a>
+                    {% endif %}
+                </li>
+                {% endfor %}
+
+                {% if products.has_next %}
+                <li>
+                    <a href="?page={{ products.next_page_number }}" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500">Suivante</a>
+                </li>
+                <li>
+                    <a href="?page={{ products.paginator.num_pages }}" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500">Dernière &raquo;</a>
+                </li>
+                {% endif %}
+            </ul>
+        </nav>
+    </div>
+    {% endif %}
+</section>
+
+
+<script>
+    document.getElementById('open-slide').addEventListener('click', function() {
+        document.getElementById('search-slide').classList.remove('hidden');
+    });
+
+    document.getElementById('close-slide').addEventListener('click', function() {
+        document.getElementById('search-slide').classList.add('hidden');
+    });
+</script>
+
+{% endblock %} {% endcomment %}

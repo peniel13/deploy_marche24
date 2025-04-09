@@ -1,0 +1,5 @@
+{% for category in servicescategory %}
+    <option value="{{ category.id }}">{{ category.name }}</option>
+{% empty %}
+    <option value="">Aucune catégorie disponible</option>
+{% endfor %}

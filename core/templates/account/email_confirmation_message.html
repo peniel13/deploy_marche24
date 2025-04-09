@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Confirmation de votre adresse e-mail</title>
+</head>
+<body>
+    <h2>Bienvenue, {{ user.email }} !</h2>
+    <p>Merci de vous être inscrit sur notre site. Veuillez confirmer votre adresse e-mail en cliquant sur le bouton ci-dessous :</p>
+    
+    <p style="text-align: center;">
+        <a href="{{ activate_url }}" 
+           style="background-color: #4CAF50; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">
+           Confirmer mon compte
+        </a>
+    </p>
+
+    <p>Si vous ne pouvez pas cliquer sur le bouton, copiez et collez ce lien dans votre navigateur :</p>
+    <p><a href="{{ activate_url }}">{{ activate_url }}</a></p>
+
+    <p>Si vous n'avez pas demandé cette inscription, ignorez cet e-mail.</p>
+
+    <p>Cordialement,</p>
+    <p><strong>L'équipe du site</strong></p>
+</body>
+</html>

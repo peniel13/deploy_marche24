@@ -1,0 +1,113 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="min-h-screen flex items-center justify-center bg-gray-100 py-12 px-4 sm:px-6 lg:px-8">
+  <div class="max-w-md w-full space-y-8 bg-white p-8 rounded-lg shadow-lg">
+    <h2 class="text-2xl font-bold text-center text-primary">Modification de votre profile</h2>
+    
+    <form class="mt-8 space-y-6" method="POST" enctype="multipart/form-data">
+      {% csrf_token %}
+      <div class="rounded-md shadow-sm -space-y-px">
+
+        <!-- First Name -->
+        <div>
+          <label for="id_first_name" class="sr-only">First Name</label>
+          <input id="id_first_name" name="first_name" type="text" value="{{ form.first_name.value }}" placeholder="Entrer votre nom"
+            class="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm" required>
+          {% if form.first_name.errors %}
+            <div class="text-red-600 text-sm mt-1">{{ form.first_name.errors }}</div>
+          {% endif %}
+        </div>
+
+        <!-- Last Name -->
+        <div>
+          <label for="id_last_name" class="sr-only">Last Name</label>
+          <input id="id_last_name" name="last_name" type="text" value="{{ form.last_name.value }}" placeholder="Entrer votre post nom"
+            class="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm" required>
+          {% if form.last_name.errors %}
+            <div class="text-red-600 text-sm mt-1">{{ form.last_name.errors }}</div>
+          {% endif %}
+        </div>
+
+        <!-- Email -->
+        <div>
+          <label for="id_email" class="sr-only">Email</label>
+          <input id="id_email" name="email" type="email" value="{{ form.email.value }}" placeholder="Entrer votre email addresse"
+            class="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm" required>
+          {% if form.email.errors %}
+            <div class="text-red-600 text-sm mt-1">{{ form.email.errors }}</div>
+          {% endif %}
+        </div>
+
+        <!-- Username -->
+        <div>
+          <label for="id_username" class="sr-only">Username</label>
+          <input id="id_username" name="username" type="text" value="{{ form.username.value }}" placeholder="Entrer votre username"
+            class="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm" required>
+          {% if form.username.errors %}
+            <div class="text-red-600 text-sm mt-1">{{ form.username.errors }}</div>
+          {% endif %}
+        </div>
+
+        <!-- Profile Pic -->
+        <div>
+          <label for="id_profile_pic" class="sr-only">Profile Picture</label>
+          <input id="id_profile_pic" name="profile_pic" type="file" placeholder="Ajouter votre image profile"
+            class="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm">
+          {% if form.profile_pic.errors %}
+            <div class="text-red-600 text-sm mt-1">{{ form.profile_pic.errors }}</div>
+          {% endif %}
+        </div>
+
+        <!-- Bio -->
+        <div>
+          <label for="id_bio" class="sr-only">Bio</label>
+          <textarea id="id_bio" name="bio" placeholder="Entrer votre bio" class="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm">{{ form.bio.value }}</textarea>
+          {% if form.bio.errors %}
+            <div class="text-red-600 text-sm mt-1">{{ form.bio.errors }}</div>
+          {% endif %}
+        </div>
+
+        <!-- Address -->
+        <div>
+          <label for="id_address" class="sr-only">Address</label>
+          <input id="id_address" name="address" type="text" value="{{ form.address.value }}" placeholder="Entrer votre addresse"
+            class="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm" required>
+          {% if form.address.errors %}
+            <div class="text-red-600 text-sm mt-1">{{ form.address.errors }}</div>
+          {% endif %}
+        </div>
+
+        <!-- Phone -->
+        <div>
+          <label for="id_phone" class="sr-only">Phone</label>
+          <input id="id_phone" name="phone" type="text" value="{{ form.phone.value }}" placeholder="Entrer votre numero telephone"
+            class="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm" required>
+          {% if form.phone.errors %}
+            <div class="text-red-600 text-sm mt-1">{{ form.phone.errors }}</div>
+          {% endif %}
+        </div>
+
+        <!-- Role -->
+        <div>
+          <label for="id_role" class="sr-only">Role</label>
+          <input id="id_role" name="role" type="text" value="{{ form.role.value }}" placeholder="Entrer votre role"
+            class="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm" required>
+          {% if form.role.errors %}
+            <div class="text-red-600 text-sm mt-1">{{ form.role.errors }}</div>
+          {% endif %}
+        </div>
+
+      </div>
+
+      <div>
+        <button type="submit" class="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-primary hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+          Update Profile
+        </button>
+      </div>
+
+      
+    </form>
+  </div>
+</div>
+{% endblock content %}

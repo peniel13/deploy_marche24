@@ -1,0 +1,30 @@
+{% extends 'base.html' %}
+
+{% block content %}
+    <div class="container mx-auto py-8">
+        <h1 class="text-2xl font-bold mb-4 text-center">Choisissez votre méthode de paiement</h1>
+
+        <div class="mb-4">
+            <p><strong>Commande #{{ order.id }}</strong></p>
+            <p>Total de la commande: {{ order.total_amount }} CDF</p>
+        </div>
+
+        <form action="{% url 'process_payment' %}" method="POST">
+            {% csrf_token %}
+            <input type="hidden" name="order_id" value="{{ order.id }}">
+
+            <div class="flex justify-center">
+                <label for="payment_method" class="text-xl mr-6">
+                    <input type="radio" name="payment_method" value="stripe" required class="mr-2"> Stripe
+                </label>
+                <label for="payment_method" class="text-xl">
+                    <input type="radio" name="payment_method" value="mobile_money" required class="mr-2"> Mobile Money
+                </label>
+            </div>
+
+            <div class="mt-8 text-center">
+                <button type="submit" class="bg-blue-500 text-white px-6 py-3 rounded-lg hover:bg-blue-600 transition duration-300">Confirmer et payer</button>
+            </div>
+        </form>
+    </div>
+{% endblock %}

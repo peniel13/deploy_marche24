@@ -1,0 +1,199 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}Recherche de magasins{% endblock %}
+{% block content %}
+
+<form id="search-form" method="POST" action="{% url 'search_stores' %}#stores" class="bg-white p-6 rounded-lg shadow-lg w-full max-w-lg mx-auto pt-6">
+    {% csrf_token %}
+    <h2 class="text-2xl font-semibold text-gray-800 mb-6 text-center">Recherche de magasins proches</h2>
+
+    <!-- Bouton pour récupérer la position -->
+    <label for="location" class="block text-gray-700 font-medium mb-2">Cliquez sur le bouton pour obtenir votre position :</label>
+    <button type="button" id="pick-location-btn" class="w-full py-3 mb-4 text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded-md transition-all">
+        Sélectionner ma position
+    </button>
+
+    <div id="location-info" class="mb-4 hidden">
+        <p id="location-text" class="text-gray-700 text-center"></p>
+    </div>
+
+    <input type="hidden" id="user-lat" name="lat">
+    <input type="hidden" id="user-lon" name="lon">
+
+    <button type="button" id="toggle-filters-btn" class="w-full py-3 mb-4 text-white bg-yellow-500 hover:bg-yellow-600 focus:outline-none focus:ring-2 focus:ring-yellow-400 rounded-md transition-all">
+        Spécification des magasins (facultatif)
+    </button>
+
+    <div id="filter-options" class="mb-4 hidden">
+        <div class="mb-4">
+            <label for="category" class="block text-gray-700 font-medium mb-2">Catégorie :</label>
+            <select id="category" name="category" class="w-full py-3 mb-4 border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <option value="">--Choisir une catégorie--</option>
+                {% for category in categories %}
+                    <option value="{{ category.id }}" {% if category.id == request.POST.category %}selected{% endif %}>
+                        {{ category.nom }}
+                    </option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="mb-4">
+            <label for="typestore" class="block text-gray-700 font-medium mb-2">Type de magasin :</label>
+            <select id="typestore" name="typestore" class="w-full py-3 mb-4 border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <option value="">--Choisir un type--</option>
+                {% for type in types %}
+                    <option value="{{ type.id }}" {% if type.id == request.POST.typestore %}selected{% endif %}>
+                        {{ type.nom }}
+                    </option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="mb-4">
+            <label for="store_name" class="block text-gray-700 font-medium mb-2">Nom du magasin :</label>
+            <input type="text" id="store_name" name="store_name" class="w-full py-3 mb-4 border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Nom du magasin" value="{{ request.POST.store_name }}">
+        </div>
+
+        <div class="mb-4">
+            <label for="store_address" class="block text-gray-700 font-medium mb-2">Adresse du magasin :</label>
+            <input type="text" id="store_address" name="store_address" class="w-full py-3 mb-4 border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Adresse du magasin" value="{{ request.POST.store_address }}">
+        </div>
+    </div>
+
+    <button type="submit" id="submit-location-btn" class="w-full py-3 text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 rounded-md transition-all">
+        Enregistrer ma position et rechercher
+    </button>
+</form>
+
+<script>
+    document.getElementById('toggle-filters-btn').onclick = function() {
+        var filterOptions = document.getElementById('filter-options');
+        if (filterOptions.style.display === "none" || filterOptions.style.display === "") {
+            filterOptions.style.display = "block";  
+        } else {
+            filterOptions.style.display = "none";  
+        }
+    };
+</script>
+
+<!-- Affichage des Stores -->
+{% if stores %}
+<h2 class="text-2xl font-bold text-center text-gray-800 mb-6">
+    {{ num_stores }} magasins proches de vous
+</h2>
+<section id="stores" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8 mt-6">
+    {% for store in stores %}
+        <div class="transform transition-transform hover:scale-105 hover:shadow-lg duration-300 mb-6">
+            <div class="bg-white p-6 rounded-lg shadow-lg hover:shadow-2xl">
+                {% if store.thumbnail %}
+                    <img class="w-full h-48 object-cover rounded-t-lg" src="{{ store.thumbnail.url }}" alt="{{ store.name }}">
+                {% else %}
+                    <img class="w-full h-48 object-cover rounded-t-lg" src="{% static 'img/default-store.jpg' %}" alt="Image par défaut du Store">
+                {% endif %}
+                
+                <h3 class="text-xl font-semibold text-gray-800 mt-4">{{ store.name }}</h3>
+                <p class="text-lg text-gray-600">{{ store.adresse|truncatewords:14 }}</p>
+                <p class="text-sm text-gray-500">À {{ store.distance }} km de vous</p>
+
+                <div class="mt-4">
+                    <a href="{% url 'store_detail' store.slug %}" class="inline-block px-6 py-3 text-white bg-blue-600 hover:bg-blue-800 rounded-md font-semibold transition duration-300">
+                        Voir plus
+                    </a>
+                </div>
+            </div>
+        </div>
+    {% empty %}
+        <p class="text-center text-lg text-gray-600">Aucun magasin trouvé à proximité.</p>
+    {% endfor %}
+</section>
+
+<!-- Pagination -->
+{% if stores.has_other_pages %}
+<div class="mt-8 mb-12"> 
+    <nav aria-label="Pagination des magasins" class="flex justify-center">
+        <ul class="flex space-x-4">
+
+            {% if stores.has_previous %}
+                <li>
+                    <a href="?page=1#stores" 
+                       class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+                        « Première
+                    </a>
+                </li>
+                <li>
+                    <a href="?page={{ stores.previous_page_number }}#stores" 
+                       class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+                        <
+                    </a>
+                </li>
+            {% endif %}
+
+            <!-- Page actuelle -->
+            <li>
+                <span class="px-4 py-2 bg-blue-600 text-white rounded-lg">
+                    {{ stores.number }}
+                </span>
+            </li>
+
+            {% if stores.number < stores.paginator.num_pages %}
+                <li>
+                    <a href="?page={{ stores.paginator.num_pages }}#stores" 
+                       class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-blue-600 hover:text-white">
+                        {{ stores.paginator.num_pages }}
+                    </a>
+                </li>
+            {% endif %}
+
+            {% if stores.has_next %}
+                <li>
+                    <a href="?page={{ stores.next_page_number }}#stores"
+                       class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+                        >
+                    </a>
+                </li>
+                <li>
+                    <a href="?page={{ stores.paginator.num_pages }}#stores"
+                       class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+                        Dernière »
+                    </a>
+                </li>
+            {% endif %}
+
+        </ul>
+    </nav>
+</div>
+{% endif %}
+
+
+
+{% else %}
+    <p class="text-center text-lg text-gray-600">Veuillez enregistrer votre position pour voir les magasins proches.</p>
+{% endif %}
+
+<script>
+    let userLocation = null;
+
+    document.getElementById('pick-location-btn').onclick = function() {
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(function(position) {
+                userLocation = {
+                    lat: position.coords.latitude,
+                    lon: position.coords.longitude
+                };
+                document.getElementById('location-info').style.display = 'block';
+                document.getElementById('location-text').innerText = `Latitude: ${userLocation.lat}, Longitude: ${userLocation.lon}`;
+
+                document.getElementById('user-lat').value = userLocation.lat;
+                document.getElementById('user-lon').value = userLocation.lon;
+
+                document.getElementById('submit-location-btn').disabled = false;
+            }, function(error) {
+                alert("Impossible de récupérer la position.");
+            });
+        } else {
+            alert("La géolocalisation n'est pas supportée par ce navigateur.");
+        }
+    };
+</script>
+
+{% endblock %}

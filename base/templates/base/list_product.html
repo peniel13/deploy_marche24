@@ -1,0 +1,352 @@
+{% extends "base.html" %}
+{% load static %}
+{% block content %}
+<!-- Formulaire de recherche et filtres -->
+<!-- Page des produits avec recherche et filtres -->
+<section class="container mx-auto mt-8 px-4">
+
+    <!-- Titre de la page -->
+    <h2 class="text-3xl font-bold mb-4">Explorer les produits du grand marché Zando de Kinshasa à partir de votre téléphone ou PC et acheter aussi directement.</h2>
+    <p class="text-lg font-semibold">
+        Total des produits : <span class="text-blue-600">{{ total_products }}</span> |
+        Catégories de produits : <span class="text-green-600">{{ total_categories }}</span>
+    </p>
+    <!-- Formulaire de recherche pour mobile -->
+    <section id="search-slide" class="sm:hidden fixed top-0 left-0 w-full bg-gray-900 bg-opacity-75 z-50 hidden">
+        <div class="flex justify-between items-center p-4">
+            <h2 class="text-white font-semibold">Filtres de recherche</h2>
+            <button id="close-slide" class="text-white">X</button>
+        </div>
+        <form method="GET" action="#produits" class="p-4 bg-white">
+            <!-- Champ de recherche par nom -->
+            <div class="flex flex-col mb-4">
+                <label for="nom" class="text-lg font-semibold">Nom du produit</label>
+                <input type="text" name="nom" value="{{ product_name }}" placeholder="Rechercher par nom" class="px-4 py-2 border border-gray-300 rounded-lg">
+            </div>
+
+            <!-- Sélecteur de catégorie -->
+            <div class="flex flex-col mb-4">
+                <label for="categorie" class="text-lg font-semibold">Catégorie</label>
+                <select name="categorie" class="px-4 py-2 border border-gray-300 rounded-lg">
+                    <option value="">Toutes</option>
+                    {% for category in categories %}
+                        <option value="{{ category.id }}" {% if category_filter == category.id|stringformat:"s" %}selected{% endif %}>{{ category.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Champs de prix minimum et maximum -->
+            <div class="flex flex-col mb-4">
+                <label for="prix_min" class="text-lg font-semibold">Prix min</label>
+                <input type="number" name="prix_min" value="{{ prix_min }}" placeholder="Prix minimum" class="px-4 py-2 border border-gray-300 rounded-lg">
+            </div>
+
+            <div class="flex flex-col mb-4">
+                <label for="prix_max" class="text-lg font-semibold">Prix max</label>
+                <input type="number" name="prix_max" value="{{ prix_max }}" placeholder="Prix maximum" class="px-4 py-2 border border-gray-300 rounded-lg">
+            </div>
+
+            <!-- Bouton de soumission -->
+            <div class="flex justify-center items-end">
+                <button type="submit" class="px-6 py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 w-full">
+                    Rechercher
+                </button>
+            </div>
+        </form>
+    </section>
+
+    <!-- Bouton pour ouvrir les filtres (mobile) -->
+    <!-- Bouton pour ouvrir les filtres (mobile) -->
+    <div class="sm:hidden text-center mt-4 mb-8">
+        <button id="open-slide" class="px-6 py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 w-full">
+            Ouvrir recherche rapide
+        </button>
+    </div>
+
+    <!-- Formulaire pour desktop (visible uniquement sur grand écran) -->
+    <section id="search-desktop" class="hidden sm:block py-8 bg-gray-100">
+        <div class="container mx-auto px-4">
+            <form method="GET" action="#produits" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <!-- Champ de recherche par nom -->
+                <div class="flex flex-col">
+                    <label for="nom" class="text-lg font-semibold">Nom du produit</label>
+                    <input type="text" name="nom" value="{{ product_name }}" placeholder="Rechercher par nom" class="px-4 py-2 border border-gray-300 rounded-lg">
+                </div>
+
+                <!-- Sélecteur de catégorie -->
+                <div class="flex flex-col">
+                    <label for="categorie" class="text-lg font-semibold">Catégorie</label>
+                    <select name="categorie" class="px-4 py-2 border border-gray-300 rounded-lg">
+                        <option value="">Toutes</option>
+                        {% for category in categories %}
+                            <option value="{{ category.id }}" {% if category_filter == category.id|stringformat:"s" %}selected{% endif %}>{{ category.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- Champs de prix minimum et maximum -->
+                <div class="flex flex-col">
+                    <label for="prix_min" class="text-lg font-semibold">Prix min</label>
+                    <input type="number" name="prix_min" value="{{ prix_min }}" placeholder="Prix minimum" class="px-4 py-2 border border-gray-300 rounded-lg">
+                </div>
+
+                <div class="flex flex-col">
+                    <label for="prix_max" class="text-lg font-semibold">Prix max</label>
+                    <input type="number" name="prix_max" value="{{ prix_max }}" placeholder="Prix maximum" class="px-4 py-2 border border-gray-300 rounded-lg">
+                </div>
+
+                <!-- Bouton de soumission -->
+                <div class="flex justify-center items-end sm:col-span-2 lg:col-span-4 mt-6">
+                    <button type="submit" class="px-6 py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 w-full sm:w-auto">
+                        Rechercher
+                    </button>
+                </div>
+            </form>
+        </div>
+    </section>
+
+    <!-- Affichage des produits -->
+    <section id="produits" class="py-16 bg-gray-100">
+        <div class="flex flex-wrap gap-6 justify-center">
+            {% for product in products %}
+            <div class="flex-shrink-0 border-2 border-secondary bg-slate-100 text-black rounded-xl mb-6 cursor-pointer 
+            hover:scale-105 hover:shadow-lg transition-transform duration-300 ease-linear w-64 h-full flex flex-col">
+                <div>
+                    <img src="{{ product.image.url }}" alt="{{ product.name }}" class="rounded-t-xl w-full h-40 object-cover" 
+                    onclick="showImagePopup('{{ product.image.url  }}')"/>
+                </div>
+                <div class="flex flex-col justify-between flex-grow p-4">
+                    <!-- Formulaire d'ajout au panier -->
+                    <form id="add-to-cart-form-{{ product.id }}" action="{% url 'add_to_cart_ajax' product.id %}" method="POST">
+                        {% csrf_token %}
+                        <button type="submit" class="px-6 py-2 bg-blue-500 text-white rounded-full text-lg hover:bg-blue-600 transition duration-300">
+                            Ajouter au panier
+                        </button>
+                    </form>
+
+                    <!-- Nom du produit et prix -->
+                    <div class="flex flex-col items-center my-4">
+                        <h1 class="font-semibold text-xl text-primary pt-2 text-center">{{ product.name }}</h1>
+                        <h2 class="font-medium text-lg text-center">{{ product.price_with_commission }} CDF{{ product.store.currency }}</h2>
+                    </div>
+
+                    <!-- Affichage des étoiles de la note moyenne -->
+                    <div class="flex items-center justify-center my-2">
+                        <p class="text-yellow-500">
+                            {% for i in range_10 %}
+                                {% if i <= product.average_rating %}
+                                    &#9733;  <!-- Étoile remplie -->
+                                {% else %}
+                                    &#9734;  <!-- Étoile vide -->
+                                {% endif %}
+                            {% endfor %}
+                        </p>
+                        <p class="text-gray-500 text-sm">Note moyenne: {{ product.average_rating|default:"0" }}/10</p>
+                    </div>
+
+                    <!-- Bouton "Voir les détails" -->
+                    <a href="{% url 'product_detail' product.id %}" class="px-6 py-2 bg-blue-500 text-white rounded-full text-lg hover:bg-blue-600 transition duration-300">
+                        Voir les détails
+                    </a>
+                </div>
+            </div>
+            {% empty %}
+            <p>Aucun produit trouvé pour cette recherche.</p>
+            {% endfor %}
+        </div>
+
+        <!-- Pagination -->
+        {% if products.has_other_pages %}
+        <div class="mt-8">
+            <nav aria-label="Pagination des produits" class="flex justify-center">
+                <ul class="flex space-x-4">
+                    
+                    {% if products.has_previous %}
+                    <li>
+                        <a href="?page=1#produits" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+                            &laquo; Première
+                        </a>
+                    </li>
+                    <li>
+                        <a href="?page={{ products.previous_page_number }}#produits" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+                            <
+                        </a>
+                    </li>
+                    {% endif %}
+                    
+                    <!-- Affichage de la page actuelle -->
+                    <li>
+                        <span class="px-4 py-2 bg-blue-600 text-white rounded-lg">
+                            {{ products.number }}
+                        </span>
+                    </li>
+        
+                    {% if products.number < products.paginator.num_pages %}
+                    <li>
+                        <a href="?page={{ products.paginator.num_pages }}#produits" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-blue-600 hover:text-white">
+                            {{ products.paginator.num_pages }}
+                        </a>
+                    </li>
+                    {% endif %}
+        
+                    {% if products.has_next %}
+                    <li>
+                        <a href="?page={{ products.next_page_number }}#produits" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+                            >
+                        </a>
+                    </li>
+                    <li>
+                        <a href="?page={{ products.paginator.num_pages }}#produits" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+                            Dernière &raquo;
+                        </a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </nav>
+        </div>
+        {% endif %}
+        
+    </section>
+</section>
+<section id="favorite_stores" class="py-16 bg-gray-100">
+    <div class="max-w-6xl mx-auto text-center">
+        <h2 class="text-3xl font-semibold mb-8">Boutiques Populaires</h2>
+        
+        <!-- Carrousel Glide.js -->
+        <div class="relative w-full glide-01">
+            <!-- Carousel wrapper -->
+            <div class="overflow-hidden" data-glide-el="track">
+                <ul class="relative w-full overflow-hidden p-0 whitespace-no-wrap flex flex-no-wrap [backface-visibility: hidden] [transform-style: preserve-3d] [touch-action: pan-Y] [will-change: transform]">
+                    {% if favorite_stores %}
+                        {% for store in favorite_stores %}
+                            <li class="min-w-[250px] md:w-[calc(33.33%-24px)]">
+                                <div class="bg-white p-6 rounded-lg shadow-lg hover:shadow-2xl mb-6">
+                                    {% if store.thumbnail %}
+                                        <img class="w-full h-48 object-cover rounded-t-lg" src="{{ store.thumbnail.url }}" alt="{{ store.name }}">
+                                    {% else %}
+                                        <img class="w-full h-48 object-cover rounded-t-lg" src="{% static 'img/default-store.jpg' %}" alt="Image par défaut du Store">
+                                    {% endif %}
+                                    
+                                    <h3 class="text-xl font-semibold text-gray-800 mt-4">{{ store.name }}</h3>
+                                    <p class="text-lg text-gray-600">{{ store.commune }}</p>
+                                    
+                                    <div class="flex items-center mt-2">
+                                        <p class="text-yellow-500">
+                                            {% for i in range_10 %}
+                                                {% if i <= store.average_rating %}
+                                                    &#9733;
+                                                {% else %}
+                                                    &#9734;
+                                                {% endif %}
+                                            {% endfor %}
+                                        </p>
+                                        <span class="text-sm text-gray-500 ml-2">Note moyenne : {{ store.average_rating|default:"0" }}/10</span>
+                                    </div>
+
+                                    <div class="mt-4">
+                                        <a href="{% url 'store_detail' store.slug %}" class="inline-block px-6 py-3 text-white bg-blue-600 hover:bg-blue-800 rounded-md font-semibold transition duration-300">
+                                            Voir plus
+                                        </a>
+                                    </div>
+                                </div>
+                            </li>
+                        {% endfor %}
+                    {% else %}
+                        <p class="text-center text-lg text-gray-600">Aucune boutique favorite trouvée.</p>
+                    {% endif %}
+                </ul>
+            </div>
+            
+            <!-- Carousel controls -->
+            <div class="absolute left-0 flex items-center justify-between w-full h-0 px-4 top-1/2" data-glide-el="controls">
+                <button class="inline-flex items-center justify-center w-8 h-8 transition duration-300 border rounded-full lg:w-12 lg:h-12 text-slate-700 border-slate-700 hover:text-slate-900 hover:border-slate-900 focus-visible:outline-none bg-white/20" data-glide-dir="<" aria-label="previous slide">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M6.75 15.75L3 12m0 0l3.75-3.75M3 12h18"/>
+                    </svg>
+                </button>
+                <button class="inline-flex items-center justify-center w-8 h-8 transition duration-300 border rounded-full lg:w-12 lg:h-12 text-slate-700 border-slate-700 hover:text-slate-900 hover:border-slate-900 focus-visible:outline-none bg-white/20" data-glide-dir=">" aria-label="next slide">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M17.25 8.25L21 12m0 0l-3.75 3.75M21 12H3"/>
+                    </svg>
+                </button>
+            </div>
+        </div>
+    </div>
+</section>
+<!-- Popup pour afficher l'image agrandie -->
+<div id="imagePopup" class="fixed inset-0 bg-gray-800 bg-opacity-75 flex items-center justify-center hidden">
+    <div class="bg-white p-4 rounded-xl max-w-lg">
+        <span class="absolute top-0 right-0 p-3 cursor-pointer text-white bg-red-600 rounded-full text-3xl flex justify-center items-center" onclick="hideImagePopup()">X</span>
+        <img id="popupImage" src="" alt="Image agrandie" class="w-full h-auto rounded-lg">
+    </div>
+</div>
+
+
+   
+
+<!-- Glide.js Script -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Glide.js/3.0.2/glide.js"></script>
+
+<script>
+    var glide01 = new Glide('.glide-01', {
+        type: 'carousel',
+        focusAt: 'center',
+        perView: 3,
+        autoplay: 3000,
+        animationDuration: 700,
+        gap: 24,
+        classes: {
+            activeNav: '[&>*]:bg-slate-700',
+        },
+        breakpoints: {
+            1024: {
+                perView: 2
+            },
+            640: {
+                perView: 1
+            }
+        },
+    });
+
+    glide01.mount();
+</script>
+
+
+<!-- JavaScript pour contrôler l'ouverture/fermeture du slide -->
+<script>
+    const openSlideButton = document.getElementById('open-slide');
+    const searchSlide = document.getElementById('search-slide');
+    const closeSlideButton = document.getElementById('close-slide');
+
+    openSlideButton.addEventListener('click', () => {
+        searchSlide.classList.remove('hidden');
+    });
+
+    closeSlideButton.addEventListener('click', () => {
+        searchSlide.classList.add('hidden');
+    });
+</script>
+<script>
+    const scrollingContainer = document.getElementById("scrollingStores");
+
+    scrollingContainer.addEventListener("mouseover", function() {
+        scrollingContainer.style.animationPlayState = "paused";
+    });
+
+    scrollingContainer.addEventListener("mouseleave", function() {
+        scrollingContainer.style.animationPlayState = "running";
+    });
+
+     // Afficher le popup avec l'image agrandie
+     function showImagePopup(imageUrl) {
+        document.getElementById('popupImage').src = imageUrl;
+        document.getElementById('imagePopup').classList.remove('hidden');
+    }
+
+    // Masquer le popup
+    function hideImagePopup() {
+        document.getElementById('imagePopup').classList.add('hidden');
+    }
+</script>
+
+{% endblock content %}

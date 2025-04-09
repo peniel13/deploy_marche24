@@ -1,0 +1,309 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block content %}
+<section class="relative bg-cover bg-center h-96" style="background-image: url('{% static "img/her2.jpg" %}');">
+    <!-- Overlay to darken the background -->
+    <div class="absolute inset-0 bg-gray-800 opacity-50"></div>
+    
+    <div class="container mx-auto h-full flex items-center justify-start relative z-10">
+        <div class="text-left text-white px-6">
+            <!-- Profile Picture and User Info -->
+            <div class="flex items-center space-x-6">
+                <div class="flex-shrink-0">
+                    {% if user.profile_pic %}
+                        <img class="h-32 w-32 rounded-full" src="{{ user.profile_pic.url }}" alt="Profile Picture">
+                    {% else %}
+                        <img class="h-32 w-32 rounded-full" src="https://bootdey.com/img/Content/avatar/avatar7.png" alt="Default Profile Picture">
+                    {% endif %}
+                </div>
+                <div>
+                    <h1 class="text-4xl font-bold">{{ user.first_name }} {{ user.last_name }}</h1>
+                    <p class="text-xl">{{ user.role }}</p>
+                    <p class="text-lg">{{ user.email }}</p>
+                    <p class="text-lg">{{ user.bio }}</p>
+                    <p class="text-lg">Téléphone : {{ user.phone }}</p>
+                    <p class="text-lg">Adresse : {{ user.address }}</p>
+                </div>
+            </div>
+            
+            <hr class="border-2 border-white my-4">
+            
+            <p class="text-lg">Gérez vos informations personnelles et vos préférences ici.</p>
+            <div class="mt-4 flex items-center">
+                <!-- Afficher les points de fidélité -->
+                {% comment %} <div class="text-lg font-semibold mr-4">
+                    <a href="{% url 'user_dashboard' %}" class="text-white-600 hover:text-green-800">
+                        Points de fidélité: {{ total_points }} points
+                    </a>
+                </div>                 {% endcomment %}
+                <a href="{% url 'user_dashboard' %}" class="px-6 py-2 bg-red-500 text-white rounded-full text-lg hover:bg-red-600 transition duration-300">
+                    Points de fidélité: {{ total_points }} points
+                </a>
+                
+                <!-- Bouton pour modifier le profil -->
+                <a href="{% url 'update_profile' %}" class="ml-4 px-6 py-2 bg-blue-500 text-white rounded-full text-lg hover:bg-blue-600 transition duration-300">
+                    Modifier Profil
+                </a>
+                
+                <!-- Bouton pour produits de bonus -->
+                <a href="{% url 'list_product_rewards' %}" class="ml-4 px-6 py-2 bg-green-500 text-white rounded-full text-lg hover:bg-green-600 transition duration-300">
+                    Produits de Bonus
+                </a>
+                
+            </div>
+            
+        </div>
+    </div>
+</section>
+
+<section id="commandes" class="mt-12 pb-12">
+    <h2 class="text-3xl font-bold text-center mb-8">Votre Historique d'Achat</h2>
+    
+    {% if orders %}
+    <div class="overflow-x-auto">
+        <table class="min-w-full table-auto bg-white shadow-lg rounded-lg">
+            <thead class="bg-blue-600 text-white">
+                <tr>
+                    <th class="px-6 py-3 text-left">Id #</th>
+                    <th class="px-6 py-3 text-left">Statut</th>
+                    <th class="px-6 py-3 text-left">Date</th>
+                    <th class="px-6 py-3 text-left">Total</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for order in orders %}
+                <tr class="border-t">
+                    <td class="px-6 py-4">
+                        <a href="{% url 'order_detail' order.id %}" class="text-blue-600 hover:text-blue-800">
+                            {{ order.id }}
+                        </a>
+                    </td>
+                    <td class="px-6 py-4">{{ order.status }}</td>
+                    <td class="px-6 py-4">{{ order.created_at }}</td>
+                    <td class="px-6 py-4">
+                        <a href="{% url 'order_detail' order.id %}" class="text-blue-600 hover:text-blue-800">
+                            {{ order.total_amount }} CDF
+                        </a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+{% comment %} {% endif %}
+
+            </tbody>
+        </table>
+    </div> {% endcomment %}
+
+    <!-- Pagination des commandes -->
+    {% if orders.has_other_pages %}
+    <div class="mt-8">
+        <nav aria-label="Pagination des commandes" class="flex justify-center">
+            <ul class="flex space-x-4">
+    
+                {% if orders.has_previous %}
+                <li>
+                    <a href="?page={{ orders.previous_page_number }}#commandes" 
+                       class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+                        &lt; Précédente
+                    </a>
+                </li>
+                {% endif %}
+    
+                <li>
+                    <span class="px-4 py-2 bg-blue-600 text-white rounded-lg">
+                        {{ orders.number }}
+                    </span>
+                </li>
+    
+                {% if orders.has_next %}
+                <li>
+                    <a href="?page={{ orders.next_page_number }}#commandes"
+                       class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+                        Suivante &gt;
+                    </a>
+                </li>
+                {% endif %}
+            </ul>
+        </nav>
+    </div>
+    {% endif %}
+    
+
+    {% else %}
+    <p class="text-center text-lg text-gray-600">Vous n'avez pas encore de commandes.</p>
+    {% endif %}
+</section>
+
+<section id="commandes" class="mt-12 pb-12">
+    <h2 class="text-3xl font-bold text-center mb-8">Vos Commandes de Livraison</h2>
+
+    {% if commandes %}
+    <div class="overflow-x-auto">
+        <table class="min-w-full table-auto bg-white shadow-lg rounded-lg">
+            <thead class="bg-blue-600 text-white">
+                <tr>
+                    <th class="px-6 py-3 text-left">Id #</th>
+                    <th class="px-6 py-3 text-left">Statut</th>
+                    <th class="px-6 py-3 text-left">Date</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for commande in commandes %}
+                <tr class="border-t">
+                    <td class="px-6 py-4">
+                        <a href="{% url 'livraison_detail' commande.id %}" class="text-blue-600 hover:text-blue-800">
+                            {{ commande.numero_id_colis }}
+                        </a>
+                    </td>
+                    <td class="px-6 py-4">{{ commande.statut }}</td>
+                    <td class="px-6 py-4">{{ commande.date_commande }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+
+    <!-- Pagination des commandes de livraison -->
+    {% if commandes.has_other_pages %}
+    <div class="mt-8">
+        <nav aria-label="Pagination des commandes" class="flex justify-center">
+            <ul class="flex space-x-4">
+
+                {% if commandes.has_previous %}
+                <li>
+                    <a href="?page={{ commandes.previous_page_number }}#commandes" 
+                       class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+                        Précédente
+                    </a>
+                </li>
+                {% endif %}
+
+                <li>
+                    <span class="px-4 py-2 bg-blue-600 text-white rounded-lg">
+                        {{ commandes.number }}
+                    </span>
+                </li>
+
+                {% if commandes.has_next %}
+                <li>
+                    <a href="?page={{ commandes.next_page_number }}#commandes"
+                       class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+                        Suivante
+                    </a>
+                </li>
+                {% endif %}
+            </ul>
+        </nav>
+    </div>
+    {% endif %}
+
+    {% else %}
+    <p class="text-center text-lg text-gray-600">Vous n'avez pas encore de commandes de livraison.</p>
+    {% endif %}
+</section>
+
+
+
+<!-- Bouton de création de store en dehors de la section -->
+<div class="container mx-auto mt-8 text-center">
+    <a href="{% url 'create_store' %}" class="inline-block px-6 py-3 text-white bg-blue-600 hover:bg-blue-800 rounded-md transition duration-300">
+        Ajouter un super marché (reserver au gerant de store)
+    </a>
+</div>
+<!-- Section pour afficher les stores sous forme de cartes animées -->
+<section class="mt-12 pb-12">
+    <h2 class="text-3xl font-bold text-center mb-8">Vos Stores</h2>
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
+        {% for store in stores %}
+        <div class="transform transition-transform hover:scale-105 hover:shadow-lg duration-300 mb-6">  <!-- Margin bottom ajouté ici -->
+            <div class="bg-white p-6 rounded-lg shadow-lg hover:shadow-2xl">
+                {% if store.thumbnail %}
+                <img class="w-full h-48 object-cover rounded-t-lg" src="{{ store.thumbnail.url }}" alt="{{ store.name }}">
+                {% else %}
+                <img class="w-full h-48 object-cover rounded-t-lg" src="{% static 'img/default-store.jpg' %}" alt="Default Store Image">
+                {% endif %}
+                
+                <!-- Contenu de la carte -->
+                <h3 class="text-xl font-semibold text-gray-800 mt-4">{{ store.name }}</h3>
+                <p class="text-lg text-gray-600">{{ store.commune }}</p>
+                
+                <!-- Boutons de gestion pour le propriétaire -->
+                {% if store.owner == user %}
+                <div class="mt-4 flex space-x-4">
+                    <!-- Bouton Edit -->
+                    <a href="{% url 'edit_store' store.slug %}" class="inline-block px-6 py-3 text-white bg-yellow-500 hover:bg-yellow-600 rounded-md font-semibold transition duration-300">
+                        Modifier
+                    </a>
+    
+                    <!-- Bouton Delete -->
+<a href="{% url 'delete_store' store.slug %}" class="inline-block px-6 py-3 text-white bg-red-600 hover:bg-red-700 rounded-md font-semibold transition duration-300 delete-store-btn">
+    Supprimer
+</a>
+                </div>
+                {% endif %}
+                
+                <!-- Bouton Voir Plus -->
+                <div class="mt-4">
+                    <a href="{% url 'store_detail' store.slug %}" class="inline-block px-6 py-3 text-white bg-blue-600 hover:bg-blue-800 rounded-md font-semibold transition duration-300">
+                        Voir plus
+                    </a>
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <p class="text-center text-lg text-gray-600">Vous n'avez pas encore de stores.</p>
+        {% endfor %}
+    </div>
+    
+</section>
+
+
+<!-- Modal de confirmation -->
+<div id="deleteModal" class="fixed inset-0 z-50 hidden bg-gray-900 bg-opacity-50 flex justify-center items-center">
+    <div class="bg-white p-8 rounded-lg shadow-xl max-w-sm w-full">
+        <h2 class="text-2xl font-semibold text-center mb-4">Êtes-vous sûr de vouloir supprimer ce store ?</h2>
+        <div class="flex justify-center space-x-4">
+            <!-- Bouton Annuler -->
+            <button id="cancelDelete" class="px-6 py-2 text-white bg-gray-500 rounded-md hover:bg-gray-600">Annuler</button>
+            <!-- Bouton Confirmer -->
+            <a id="confirmDelete" href="#" class="px-6 py-2 text-white bg-red-600 rounded-md hover:bg-red-700">Confirmer</a>
+        </div>
+    </div>
+</div>
+<script>
+    // Récupérer l'élément du modal et les boutons
+    const deleteModal = document.getElementById('deleteModal');
+    const confirmDelete = document.getElementById('confirmDelete');
+    const cancelDelete = document.getElementById('cancelDelete');
+    
+    // Récupérer tous les boutons "Supprimer" (les liens)
+    const deleteButtons = document.querySelectorAll('.delete-store-btn');
+    
+    let deleteUrl = ""; // Variable pour stocker l'URL de suppression
+    
+    // Lorsque le bouton de suppression est cliqué, afficher le modal et enregistrer l'URL de suppression
+    deleteButtons.forEach(button => {
+        button.addEventListener('click', function(event) {
+            event.preventDefault(); // Empêche la redirection immédiate
+            deleteUrl = button.getAttribute('href'); // Enregistre l'URL du store à supprimer
+            deleteModal.classList.remove('hidden'); // Affiche le modal
+        });
+    });
+    
+    // Si l'utilisateur clique sur "Annuler", masquer le modal
+    cancelDelete.addEventListener('click', function() {
+        deleteModal.classList.add('hidden'); // Masquer le modal
+    });
+    
+    // Si l'utilisateur clique sur "Confirmer", rediriger vers l'URL de suppression
+    confirmDelete.addEventListener('click', function() {
+        window.location.href = deleteUrl; // Rediriger vers l'URL de suppression
+    });
+</script>
+
+
+{% endblock %}

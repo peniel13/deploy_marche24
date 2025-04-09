@@ -1,0 +1,283 @@
+{% extends "base.html" %}
+{% load static %}
+{% block content %}
+<div class="container mx-auto p-6">
+    <!-- Message de bienvenue -->
+    <div class="welcome-message mb-6">
+        <h1 class="text-3xl font-semibold text-center">Payer par mobile money sur Zando na maboko</h1>
+        <p class="text-lg text-center mt-2">Pour effectuer le paiement de vos articles sur Zando na maboko par Mobile Money, veuillez suivre les instructions ci-dessous.</p>
+    </div>
+
+    <div class="payeenligne-container bg-white p-6 rounded-lg shadow-lg">
+        <div class="payeenligne-wrapper">
+            <!-- Instructions de paiement -->
+            <div class="payeenligne-left mb-6">
+                <h2 class="text-2xl font-semibold mb-4">Instructions de Paiement</h2>
+                <ul class="list-decimal pl-6">
+                    <li> Sélectionnez le numéro correspondant à votre opérateur de réseau ci-dessous.</li>
+                    <li> Effectuez le transfert du montant total des articles que vous avez ajoutés à votre panier  <strong>{{ total_amount|floatformat:2 }} CDF.</strong></li>
+                    <li> Après avoir effectué le paiement, entrez les informations de votre transaction dans le formulaire ci-dessous.</li>
+                    <li> Cliquez sur "Effectuer le paiement" pour confirmer votre transaction.</li>
+                    <li> Vérifiez la situation de votre commande pour confirmer que votre paiement a été correctement enregistré.</li>
+                </ul>
+
+                <h3 class="text-xl font-semibold mt-6">Numéros pour le paiement :</h3>
+                <ul class="list-none mt-4">
+                    <li class="flex items-center mb-2">
+                        <img src="{% static 'img/airtel.png' %}" alt="Opérateur A" class="operator-image w-12 h-12 mr-4"> 
+                        Mobile Money - Opérateur A : +243972489318
+                    </li>
+                    <li class="flex items-center mb-2">
+                        <img src="{% static 'img/M-Pesa.jpg' %}" alt="Opérateur B" class="operator-image w-12 h-12 mr-4"> 
+                        Mobile Money - Opérateur B : +987654321
+                    </li>
+                    <li class="flex items-center mb-2">
+                        <img src="{% static 'img/orange.png' %}" alt="Opérateur C" class="operator-image w-12 h-12 mr-4"> 
+                        Mobile Money - Opérateur C : +456789123
+                    </li>
+                </ul>
+
+                <p class="text-gray-600 mt-4">Assurez-vous de conserver une preuve de votre transaction. Si vous avez des questions, n'hésitez pas à nous contacter à notre service client.</p>
+            </div>
+
+            <!-- Formulaire de paiement -->
+            <div class="payeenligne-right">
+                <h2 class="text-xl font-semibold mb-4">Paiement Mobile Money</h2>
+                 <!-- Affichage des informations de la commande -->
+        <div class="mb-4">
+            <p class="text-gray-600">Total des articles : <strong>{{ total_items }}</strong></p>
+            <p class="text-gray-600">Montant total à payer : <strong>{{ total_amount|floatformat:2 }} CDF</strong></p>
+        </div>
+                <form method="POST" class="space-y-6">
+                    {% csrf_token %}
+                    
+                    <!-- Nom -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                        <div>
+                            <label for="first_name" class="block text-sm font-medium text-gray-700">Prénom</label>
+                            <input type="text" name="first_name" id="first_name" value="{{ form.first_name.value }}" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" required>
+                            {% if form.first_name.errors %}
+                                <div class="text-sm text-red-600">{{ form.first_name.errors }}</div>
+                            {% endif %}
+                        </div>
+
+                        <div>
+                            <label for="last_name" class="block text-sm font-medium text-gray-700">Nom</label>
+                            <input type="text" name="last_name" id="last_name" value="{{ form.last_name.value }}" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" required>
+                            {% if form.last_name.errors %}
+                                <div class="text-sm text-red-600">{{ form.last_name.errors }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <!-- Numéro de transaction -->
+                    <div>
+                        <label for="transaction_number" class="block text-sm font-medium text-gray-700">Numéro de téléphone transaction</label>
+                        <input type="text" name="transaction_number" id="transaction_number" value="{{ form.transaction_number.value }}" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" required>
+                        {% if form.transaction_number.errors %}
+                            <div class="text-sm text-red-600">{{ form.transaction_number.errors }}</div>
+                        {% endif %}
+                    </div>
+
+                    <!-- ID de transaction -->
+                    <div>
+                        <label for="transaction_id" class="block text-sm font-medium text-gray-700">ID de la transaction</label>
+                        <input type="text" name="transaction_id" id="transaction_id" value="{{ form.transaction_id.value }}" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" required>
+                        {% if form.transaction_id.errors %}
+                            <div class="text-sm text-red-600">{{ form.transaction_id.errors }}</div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Numéro de téléphone -->
+                    <div>
+                        <label for="phone_number" class="block text-sm font-medium text-gray-700">Numéro de téléphone</label>
+                        <input type="text" name="phone_number" id="phone_number" value="{{ form.phone_number.value }}" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" required>
+                        {% if form.phone_number.errors %}
+                            <div class="text-sm text-red-600">{{ form.phone_number.errors }}</div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Option de livraison -->
+                    <div>
+                        <label for="delivery_option" class="block text-sm font-medium text-gray-700">Option de livraison</label>
+                        <select name="delivery_option" id="delivery_option" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" required>
+                            <option value="home" {% if form.delivery_option.value == 'home' %}selected{% endif %}>A domicile</option>
+                            <option value="pickup" {% if form.delivery_option.value == 'pickup' %}selected{% endif %}>Récupérer soi-même</option>
+                        </select>
+                        {% if form.delivery_option.errors %}
+                            <div class="text-sm text-red-600">{{ form.delivery_option.errors }}</div>
+                        {% endif %}
+                    </div>
+                    
+                    <!-- Submit Button -->
+                    <div class="mt-6">
+                        <button type="submit" class="w-full px-4 py-2 bg-indigo-600 text-white font-semibold rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 hover:bg-indigo-700">
+                            Soumettre le paiement
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+
+{% comment %} <!-- mobile_money_checkout.html -->
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mx-auto p-6">
+    <h2 class="text-2xl font-bold text-center mb-6">Paiement Mobile Money</h2>
+    
+    <div class="max-w-lg mx-auto bg-white p-6 rounded-lg shadow-lg">
+        <form method="POST">
+            {% csrf_token %}
+            
+            <div class="space-y-6">
+                <!-- Nom -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                    <div>
+                        <label for="first_name" class="block text-sm font-medium text-gray-700">Prénom</label>
+                        <input type="text" name="first_name" id="first_name" value="{{ form.first_name.value }}" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" required>
+                        {% if form.first_name.errors %}
+                            <div class="text-sm text-red-600">{{ form.first_name.errors }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div>
+                        <label for="last_name" class="block text-sm font-medium text-gray-700">Nom</label>
+                        <input type="text" name="last_name" id="last_name" value="{{ form.last_name.value }}" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" required>
+                        {% if form.last_name.errors %}
+                            <div class="text-sm text-red-600">{{ form.last_name.errors }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Transaction Number -->
+                <div>
+                    <label for="transaction_number" class="block text-sm font-medium text-gray-700">Numéro de transaction</label>
+                    <input type="text" name="transaction_number" id="transaction_number" value="{{ form.transaction_number.value }}" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" required>
+                    {% if form.transaction_number.errors %}
+                        <div class="text-sm text-red-600">{{ form.transaction_number.errors }}</div>
+                    {% endif %}
+                </div>
+
+                <!-- Transaction ID -->
+                <div>
+                    <label for="transaction_id" class="block text-sm font-medium text-gray-700">ID de la transaction</label>
+                    <input type="text" name="transaction_id" id="transaction_id" value="{{ form.transaction_id.value }}" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" required>
+                    {% if form.transaction_id.errors %}
+                        <div class="text-sm text-red-600">{{ form.transaction_id.errors }}</div>
+                    {% endif %}
+                </div>
+
+                <!-- Phone Number -->
+                <div>
+                    <label for="phone_number" class="block text-sm font-medium text-gray-700">Numéro de téléphone</label>
+                    <input type="text" name="phone_number" id="phone_number" value="{{ form.phone_number.value }}" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" required>
+                    {% if form.phone_number.errors %}
+                        <div class="text-sm text-red-600">{{ form.phone_number.errors }}</div>
+                    {% endif %}
+                </div>
+
+                <!-- Delivery Option -->
+                <div>
+                    <label for="delivery_option" class="block text-sm font-medium text-gray-700">Option de livraison</label>
+                    <select name="delivery_option" id="delivery_option" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" required>
+                        <option value="home" {% if form.delivery_option.value == 'home' %}selected{% endif %}>A domicile</option>
+                        <option value="pickup" {% if form.delivery_option.value == 'pickup' %}selected{% endif %}>Récupérer soi-même</option>
+                    </select>
+                    {% if form.delivery_option.errors %}
+                        <div class="text-sm text-red-600">{{ form.delivery_option.errors }}</div>
+                    {% endif %}
+                </div>
+                
+                <!-- Submit Button -->
+                <div class="mt-6">
+                    <button type="submit" class="w-full px-4 py-2 bg-indigo-600 text-white font-semibold rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 hover:bg-indigo-700">
+                        Soumettre la demande de paiement
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+
+
+
+{% comment %} {% extends 'base.html' %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <h1 class="text-2xl font-semibold text-gray-800 mb-6">Paiement par Mobile Money</h1>
+    
+    <div class="bg-white p-6 rounded-lg shadow-md">
+        <h2 class="text-xl font-medium text-gray-700 mb-4">Détails de la commande</h2>
+        
+        <!-- Affichage des informations de la commande -->
+        <div class="mb-4">
+            <p class="text-gray-600">Total des articles : <strong>{{ total_items }}</strong></p>
+            <p class="text-gray-600">Montant total à payer : <strong>{{ total_amount|floatformat:2 }} €</strong></p>
+        </div>
+
+        <!-- Formulaire de paiement Mobile Money -->
+        <form method="POST" class="space-y-6">
+            {% csrf_token %}
+            
+            <!-- Transaction Number -->
+            <div class="mb-4">
+                <label for="transaction_number" class="block text-sm font-medium text-gray-700">Numéro telephone de transaction</label>
+                {{ form.transaction_number }}
+            </div>
+
+            <!-- Transaction ID -->
+            <div class="mb-4">
+                <label for="transaction_id" class="block text-sm font-medium text-gray-700">ID de transaction</label>
+                {{ form.transaction_id }}
+                {% if form.transaction_id.errors %}
+                    <div class="text-red-500 text-xs mt-1">
+                        {% for error in form.transaction_id.errors %}
+                            <p>{{ error }}</p>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            </div>
+
+            <!-- First Name -->
+            <div class="mb-4">
+                <label for="first_name" class="block text-sm font-medium text-gray-700">Prénom</label>
+                {{ form.first_name }}
+            </div>
+
+            <!-- Last Name -->
+            <div class="mb-4">
+                <label for="last_name" class="block text-sm font-medium text-gray-700">Nom</label>
+                {{ form.last_name }}
+            </div>
+
+            <!-- Delivery Option -->
+
+            <!-- Submit Button -->
+            <div>
+                <button type="submit" class="w-full bg-blue-500 text-white py-2 rounded-lg hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    Soumettre le paiement
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Message de confirmation -->
+    <div class="mt-6">
+        {% if messages %}
+            <div class="bg-blue-100 text-blue-700 p-4 rounded-lg">
+                {% for message in messages %}
+                    <p>{{ message }}</p>
+                {% endfor %}
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %} {% endcomment %} 

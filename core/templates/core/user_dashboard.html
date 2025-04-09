@@ -1,0 +1,103 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+<h2 class="text-center text-3xl font-bold mb-6">Tableau de bord ({{ request.user.username }})</h2>
+
+<div class="text-center">
+  <p class="text-green-500 font-bold text-lg">🏆 Points disponibles: {{ total_points }}</p>
+  <p class="text-blue-500 font-bold text-lg">💵 Valeur en dollars: {{ total_points }} Point(s) =  ${{ total_in_usd|floatformat:2 }}</p>  <!-- Afficher la valeur en dollars -->
+  <p class="text-red-500">🔥 Points dépensés : {{ total_spent_points }}</p>
+</div>
+
+
+<section id="achats" class="mt-12 pb-12">
+    <h2 class="text-3xl font-bold text-center mb-8">Votre Historique d'Achat avec Points</h2>
+    
+    {% if purchases %}
+    <div class="overflow-x-auto">
+        <table class="min-w-full table-auto bg-white shadow-lg rounded-lg">
+            <thead class="bg-blue-600 text-white">
+                <tr>
+                    <th class="px-6 py-3 text-left">Id #</th>
+                    <th class="px-6 py-3 text-left">Produit</th>
+                    <th class="px-6 py-3 text-left">Points utilisés</th>
+                    <th class="px-6 py-3 text-left">Date</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for purchase in purchases %}
+                <tr class="border-t">
+                    <td class="px-6 py-4">{{ purchase.id }}</td>
+                    <td class="px-6 py-4">{{ purchase.product.name }}</td>
+                    <td class="px-6 py-4">{{ purchase.points_used }}</td>
+                    <td class="px-6 py-4">{{ purchase.purchase_date|date:"d/m/Y" }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div> 
+
+    <!-- Pagination des achats -->
+    {% if purchases.has_other_pages %}
+    <div class="mt-8">
+        <nav aria-label="Pagination des achats" class="flex justify-center">
+            <ul class="flex space-x-4">
+                {% if purchases.has_previous %}
+                    <li>
+                        <a href="?page=1#achats" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+                            &laquo; Première
+                        </a>
+                    </li>
+                    <li>
+                        <a href="?page={{ purchases.previous_page_number }}#achats" 
+                           class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+                            &lt; 
+                        </a>
+                    </li>
+                {% endif %}
+
+                <li>
+                    <span class="px-4 py-2 bg-blue-600 text-white rounded-lg">
+                        {{ purchases.number }}
+                    </span>
+                </li>
+
+                {% if purchases.number < purchases.paginator.num_pages %}
+                    <li>
+                        <a href="?page={{ purchases.paginator.num_pages }}#achats" 
+                           class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-blue-600 hover:text-white">
+                            {{ purchases.paginator.num_pages }}
+                        </a>
+                    </li>
+                {% endif %}
+
+                {% if purchases.has_next %}
+                    <li>
+                        <a href="?page={{ purchases.next_page_number }}#achats" 
+                           class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+                            &gt;
+                        </a>
+                    </li>
+                    <li>
+                        <a href="?page={{ purchases.paginator.num_pages }}#achats" 
+                           class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+                            Dernière &raquo;
+                        </a>
+                    </li>
+                {% endif %}
+            </ul>
+        </nav>
+    </div>
+    {% endif %}
+
+
+
+    {% else %}
+    <p class="text-center text-lg text-gray-600">Vous n'avez effectué aucun achat.</p>
+    {% endif %}
+</section>
+
+
+  <p>Voici un récapitulatif de vos dépenses de points. Si vous avez effectué des achats, ils seront listés ci-dessus.</p>
+{% endblock %}

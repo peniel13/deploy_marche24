@@ -1,0 +1,585 @@
+{% extends "base.html" %}
+{% load static %}
+{% block content %}
+<!-- Hero Section -->
+<header class="relative bg-gradient-to-r from-gray-900 to-gray-700 h-screen flex items-center" style="background-image: url('{% static "img/zando.jpg" %}'); background-size: cover;">
+    <div class="absolute inset-0 opacity-50 bg-black"></div>
+    <div class="relative z-10 max-w-4xl mx-auto text-center text-white">
+        <h1 class="text-5xl font-bold mb-4">Bienvenue sur Zando_na_Maboko, Zua Contrôle!</h1>
+        <p class="text-lg mb-6">Ayez un contrôle total sur les boutiques et les prix de chaque produit du grand marché Zando, sans avoir à vous déplacer sous le soleil ni sous la pluie, simplement depuis le confort de votre maison.</p>
+        <p class="text-lg mb-6">Achetez à l'avance, directement depuis chez vous, au bureau, ou n'importe où, pour éviter de marcher dans la boue et être exposé à tous les risques liés à une présence physique à Zando.</p>
+        <p class="text-lg mb-6">Dès que vous arrivez, votre panier sera prêt pour vous, ou vous pouvez même commander la livraison à domicile.</p>
+        <p class="text-md">Venez faire vos achats en toute simplicité, sans perdre de temps!</p>
+    </div>
+</header>
+
+<section id="favorite_stores" class="py-16 bg-gray-100">
+    <div class="max-w-6xl mx-auto text-center">
+        <h2 class="text-3xl font-semibold mb-8">Boutiques Populaires</h2>
+        <div class="mb-8">
+            <a href="{% url 'list_store' %}" class="inline-block px-8 py-4 text-white bg-blue-600 hover:bg-blue-800 rounded-md font-semibold transition duration-300">
+                Voir plus de Boutiques 
+            </a>
+        </div>
+        <!-- Carrousel Glide.js -->
+        <div class="relative w-full glide-01">
+            <!-- Carousel wrapper -->
+            <div class="overflow-hidden" data-glide-el="track">
+                <ul class="relative w-full overflow-hidden p-0 whitespace-no-wrap flex flex-no-wrap [backface-visibility: hidden] [transform-style: preserve-3d] [touch-action: pan-Y] [will-change: transform]">
+                    {% if favorite_stores %}
+                        {% for store in favorite_stores %}
+                            <li class="min-w-[250px] md:w-[calc(33.33%-24px)]">
+                                <div class="bg-white p-6 rounded-lg shadow-lg hover:shadow-2xl mb-6">
+                                    {% if store.thumbnail %}
+                                        <img class="w-full h-48 object-cover rounded-t-lg" src="{{ store.thumbnail.url }}" alt="{{ store.name }}">
+                                    {% else %}
+                                        <img class="w-full h-48 object-cover rounded-t-lg" src="{% static 'img/default-store.jpg' %}" alt="Image par défaut du Store">
+                                    {% endif %}
+                                    
+                                    <h3 class="text-xl font-semibold text-gray-800 mt-4">{{ store.name }}</h3>
+                                    <p class="text-lg text-gray-600">{{ store.commune }}</p>
+                                    
+                                    <div class="flex items-center mt-2">
+                                        <p class="text-yellow-500">
+                                            {% for i in range_10 %}
+                                                {% if i <= store.average_rating %}
+                                                    &#9733;
+                                                {% else %}
+                                                    &#9734;
+                                                {% endif %}
+                                            {% endfor %}
+                                        </p>
+                                        <span class="text-sm text-gray-500 ml-2">Note moyenne : {{ store.average_rating|default:"0" }}/10</span>
+                                    </div>
+
+                                    <div class="mt-4">
+                                        <a href="{% url 'store_detail' store.slug %}" class="inline-block px-6 py-3 text-white bg-blue-600 hover:bg-blue-800 rounded-md font-semibold transition duration-300">
+                                            Voir plus
+                                        </a>
+                                    </div>
+                                </div>
+                            </li>
+                        {% endfor %}
+                    {% else %}
+                        <p class="text-center text-lg text-gray-600">Aucune boutique favorite trouvée.</p>
+                    {% endif %}
+                </ul>
+            </div>
+            
+            <!-- Carousel controls -->
+            <div class="absolute left-0 flex items-center justify-between w-full h-0 px-4 top-1/2" data-glide-el="controls">
+                <button class="inline-flex items-center justify-center w-8 h-8 transition duration-300 border rounded-full lg:w-12 lg:h-12 text-slate-700 border-slate-700 hover:text-slate-900 hover:border-slate-900 focus-visible:outline-none bg-white/20" data-glide-dir="<" aria-label="previous slide">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M6.75 15.75L3 12m0 0l3.75-3.75M3 12h18"/>
+                    </svg>
+                </button>
+                <button class="inline-flex items-center justify-center w-8 h-8 transition duration-300 border rounded-full lg:w-12 lg:h-12 text-slate-700 border-slate-700 hover:text-slate-900 hover:border-slate-900 focus-visible:outline-none bg-white/20" data-glide-dir=">" aria-label="next slide">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M17.25 8.25L21 12m0 0l-3.75 3.75M21 12H3"/>
+                    </svg>
+                </button>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Glide.js Script -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Glide.js/3.0.2/glide.js"></script>
+
+<script>
+    var glide01 = new Glide('.glide-01', {
+        type: 'carousel',
+        focusAt: 'center',
+        perView: 3,
+        autoplay: 3000,
+        animationDuration: 700,
+        gap: 24,
+        classes: {
+            activeNav: '[&>*]:bg-slate-700',
+        },
+        breakpoints: {
+            1024: {
+                perView: 2
+            },
+            640: {
+                perView: 1
+            }
+        },
+    });
+
+    glide01.mount();
+</script>
+
+
+<!-- Section des derniers magasins -->
+{% comment %}  
+<section id="latest_stores" class="py-16 bg-gray-100">
+    <div class="max-w-6xl mx-auto text-center">
+        <h2 class="text-3xl font-semibold mb-8">Les Boutiques du marché Zando de Kinshasa</h2>
+               <!-- Bouton Voir plus pour accéder à la liste complète -->
+        <div class="mb-8">
+            <a href="{% url 'list_store' %}" class="inline-block px-8 py-4 text-white bg-blue-600 hover:bg-blue-800 rounded-md font-semibold transition duration-300">
+                Voir plus de Boutiques 
+            </a>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
+            {% for store in stores %}
+            <div class="transform transition-transform hover:scale-105 hover:shadow-lg duration-300 mb-6">
+                <div class="bg-white p-6 rounded-lg shadow-lg hover:shadow-2xl">
+                    {% if store.thumbnail %}
+                    <img class="w-full h-48 object-cover rounded-t-lg" src="{{ store.thumbnail.url }}" alt="{{ store.name }}">
+                    {% else %}
+                    <img class="w-full h-48 object-cover rounded-t-lg" src="{% static 'img/default-store.jpg' %}" alt="Image par défaut du Store">
+                    {% endif %}
+                    
+                    <!-- Contenu de la carte -->
+                    <h3 class="text-xl font-semibold text-gray-800 mt-4">{{ store.name }}</h3>
+                    <p class="text-lg text-gray-600">{{ store.commune }}</p>
+
+                    <!-- Note du Store -->
+                    <div class="flex items-center mt-2">
+                        <p class="text-yellow-500">
+                            {% for i in range_10 %}
+                                {% if i <= store.average_rating %}
+                                    &#9733;  <!-- Étoile remplie -->
+                                {% else %}
+                                    &#9734;  <!-- Étoile vide -->
+                                {% endif %}
+                            {% endfor %}
+                        </p>
+                        <span class="text-sm text-gray-500 ml-2">Note moyenne : {{ store.average_rating|default:"0" }}/10</span>
+                    </div>
+
+                    <!-- Boutons de gestion -->
+                    <div class="mt-4">
+                        <a href="{% url 'store_detail' store.slug %}" class="inline-block px-6 py-3 text-white bg-blue-600 hover:bg-blue-800 rounded-md font-semibold transition duration-300">
+                            Voir plus
+                        </a>
+                    </div>
+                </div>
+            </div>
+            {% empty %}
+            <p class="text-center text-lg text-gray-600">Aucun supermarché trouvé avec ces critères.</p>
+            {% endfor %}
+        </div>
+
+        
+    </div>
+</section>  {% endcomment %}
+{% comment %} product annonce {% endcomment %}
+<section id="produits" class="py-16 bg-gray-100">
+    <div class="max-w-6xl mx-auto text-center">
+        <h2 class="text-3xl font-semibold mb-8">Derniers Produits de Zando</h2>
+         <!-- Bouton Voir plus pour accéder à la liste complète des produits -->
+        <div class="mb-8">
+            <a href="{% url 'list_product' %}" class="inline-block px-8 py-4 text-white bg-blue-600 hover:bg-blue-800 rounded-md font-semibold transition duration-300">
+                Voir plus de produits
+            </a>
+        </div>
+        <div class="flex flex-wrap gap-6 justify-center">
+            {% for product in products %}
+            <div class="flex-shrink-0 border-2 border-secondary bg-slate-100 text-black rounded-xl mb-6 cursor-pointer hover:scale-105 hover:shadow-xl hover:bg-slate-200 transition-all duration-300 ease-in-out w-64 h-full flex flex-col">
+                <div>
+                    <img src="{{ product.image.url }}" alt="{{ product.name }}" class="rounded-t-xl w-full h-40 object-cover" 
+                    onclick="showImagePopup('{{ product.image.url  }}')"/>
+                </div>
+                <div class="flex flex-col justify-between flex-grow p-4">
+                    <!-- Formulaire d'ajout au panier -->
+                    <form id="add-to-cart-form-{{ product.id }}" action="{% url 'add_to_cart_ajax' product.id %}" method="POST">
+                        {% csrf_token %}
+                        <button type="submit" class="px-6 py-2 bg-blue-500 text-white rounded-full text-lg hover:bg-blue-600 transition duration-300">
+                            Ajouter au panier
+                        </button>
+                    </form>
+
+                    <!-- Nom du produit et prix -->
+                    <div class="flex flex-col items-center my-4">
+                        <h1 class="font-semibold text-xl text-primary pt-2 text-center">{{ product.name }}</h1>
+                        <h2 class="font-medium text-lg text-center">{{ product.price }} CDF{{ product.store.currency }}</h2>
+                    </div>
+
+                    <!-- Affichage des étoiles de la note moyenne -->
+                    <div class="flex items-center justify-center my-2">
+                        <p class="text-yellow-500">
+                            {% for i in range_10 %}
+                                {% if i <= product.average_rating %}
+                                    &#9733;  <!-- Étoile remplie -->
+                                {% else %}
+                                    &#9734;  <!-- Étoile vide -->
+                                {% endif %}
+                            {% endfor %}
+                        </p>
+                        <p class="text-gray-500 text-sm">Note moyenne: {{ product.average_rating|default:"0" }}/10</p>
+                    </div>
+
+                    <!-- Bouton "Voir les détails" -->
+                    <a href="{% url 'product_detail' product.id %}" class="px-6 py-2 bg-blue-500 text-white rounded-full text-lg hover:bg-blue-600 transition duration-300">
+                        Voir les détails
+                    </a>
+                </div>
+            </div>
+            {% empty %}
+            <p>Aucun produit trouvé pour cette recherche.</p>
+            {% endfor %}
+        </div>
+
+        
+    </div>
+</section>
+<div class="text-center">
+    <h1 class="text-3xl font-bold mb-6">Liste des Publicités</h1>
+
+    {% if user_points %}
+    <div class="flex justify-center space-x-6 mt-4">
+        <p class="text-lg">Points disponibles : <span class="font-semibold">{{ user_points.points }}</span> points</p>
+        <a href="{% url 'advertisement_list' %}" 
+               class="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-700">
+                Voir plus de pubs
+            </a>
+    </div>
+    {% else %}
+        <p class="text-lg">Vous devez vous connecter pour accumuler des points.</p>
+        <div class="flex justify-center space-x-6 mt-4">
+            <a href="{% url 'signin' %}" 
+               class="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-700">
+                Se connecter
+            </a>
+        
+            <a href="{% url 'advertisement_list' %}" 
+               class="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-700">
+                Voir plus de pubs
+            </a>
+        </div>
+        
+    {% endif %}
+</div>
+
+<!-- Affichage des publicités -->
+<div class="container mx-auto p-4">
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 ">
+    {% for ad in ads %}
+    <div class="bg-white rounded-lg shadow-lg p-4 transform transition-transform hover:scale-105 hover:shadow-lg duration-300 mb-6">
+            <h2 class="text-xl font-semibold">{{ ad.title }}</h2>
+            <p class="text-gray-600">{{ ad.description|truncatewords:20 }}</p>
+
+            <!-- Affichage de l'image ou de la vidéo -->
+            {% if ad.media_type == 'image' %}
+                <img src="{{ ad.media_file.url }}" alt="{{ ad.title }}" class="w-full mt-4 rounded">
+            {% elif ad.media_type == 'video' %}
+                <video class="w-full mt-4 rounded" controls poster="{{ ad.thumbnail_url.url }}">
+                    <source src="{{ ad.media_file.url }}" type="video/mp4">
+                </video>
+            {% endif %}
+
+            <!-- Interaction utilisateur (like, comment, share) -->
+            <div class="flex items-center justify-between mt-4">
+                {% if user.is_authenticated %}
+                    <!-- Like Icon -->
+                    <form action="{% url 'handle_like' ad.id %}" method="POST">
+                        {% csrf_token %}
+                        <button type="submit">
+                            {% if ad.user_has_liked %}
+                                <!-- Si l'utilisateur a liké, il peut "disliker" -->
+                                <span class="text-red-500 text-2xl">❤️</span> <!-- Rouge pour like -->
+                            {% else %}
+                                <!-- Si l'utilisateur n'a pas liké, il peut "liker" -->
+                                <span class="text-gray-500 text-2xl">🤍</span> <!-- Gris pour like -->
+                            {% endif %}
+                        </button>
+                    </form>
+                    
+
+                    <!-- Comment Icon -->
+                    <a href="{% url 'ad_comments' ad.slug %}" class="mr-4 text-2xl text-blue-500">
+                        <span class="text-blue-500">💬</span>
+                    </a>
+
+                    {% comment %} <!-- Share Icon -->
+                    <button onclick="showSharePopup()" class="text-gray-600 hover:text-gray-800">
+                        <span class="text-2xl">🔗</span>
+                    </button> {% endcomment %}
+                {% else %}
+                <p class="mt-4 text-red-500 font-semibold">🔒 Connectez-vous pour interagir avec cette publicité.</p>
+                <a href="{% url 'signin' %}" class="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-700 mt-2 inline-block">
+                    Se connecter
+                </a>
+                {% endif %}
+            </div>
+
+            <!-- Statistiques sur la publicité -->
+            <div class="mt-4 flex justify-between items-center text-gray-500">
+                <div>
+                    <p>{{ ad.likes_count }} Like(s)</p>
+                    <p>{{ ad.comments_count }} Commentaire(s)</p>
+                    <p>{{ ad.shares_count }} Partage(s)</p>
+                </div>
+                <a href="{% url 'advertisement_detail' ad.slug %}" class="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600">
+                    Voir Détails
+                </a>
+            </div>
+        </div>
+    {% empty %}
+        <p class="text-gray-500">Aucune publicité disponible.</p>
+    {% endfor %}
+</div>
+<section id="website_section" class="py-16 bg-gray-100">
+    <div class="max-w-6xl mx-auto text-center">
+        <h2 class="text-3xl font-semibold mb-8">Répertoire des sites web des autres  domaines qui peut vous interressez</h2>
+
+        <!-- Formulaire de recherche -->
+        <form method="get" action="#website_section" class="mb-8 flex flex-col items-center space-y-4 px-4">
+            <!-- Champ de recherche fusionné pour nom et description -->
+            <input type="text" name="search" value="{{ request.GET.search }}" placeholder="Rechercher par nom ou description"
+                class="px-4 py-2 w-full sm:w-96 border border-gray-300 rounded-md">
+        
+            <!-- Bouton de recherche -->
+            <button type="submit" class="px-6 py-2 bg-blue-500 text-white rounded-md w-full sm:w-auto">Rechercher</button>
+        </form>
+          
+
+        {% if websites %}
+        <!-- Liste des WebsiteLinks -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {% for website in websites %}
+                <div class="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition duration-300">
+                    <div class="h-48 bg-cover bg-center rounded-lg" style="background-image: url('{{ website.profile_picture.url }}');"></div>
+                    <h3 class="text-xl font-bold text-gray-800 mb-2">{{ website.name }}</h3>
+                    <p class="text-sm text-gray-500">{{ website.description }}</p>
+                    <a href="{{ website.website_link }}" class="text-blue-500 hover:underline">Visite le site</a>
+                </div>
+            {% endfor %}
+        </div>
+
+        <!-- Pagination -->
+        {% if websites.has_other_pages %}
+        <div class="mt-8">
+            <nav aria-label="Pagination des sites web" class="flex justify-center">
+                <ul class="flex space-x-4">
+                    {% if websites.has_previous %}
+                    <li>
+                        <a href="?page=1&search={{ request.GET.search }}" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500">&laquo; Première</a>
+                    </li>
+                    <li>
+                        <a href="?page={{ websites.previous_page_number }}&search={{ request.GET.search }}" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500">Précédente</a>
+                    </li>
+                    {% endif %}
+
+                    {% for page in websites.paginator.page_range %}
+                        {% if page == websites.number %}
+                        <li><span class="px-4 py-2 bg-blue-600 text-white rounded-lg">{{ page }}</span></li>
+                        {% else %}
+                        <li><a href="?page={{ page }}&search={{ request.GET.search }}" class="px-4 py-2 bg-gray-200 text-black rounded-lg hover:bg-blue-600">{{ page }}</a></li>
+                        {% endif %}
+                    {% endfor %}
+
+                    {% if websites.has_next %}
+                    <li>
+                        <a href="?page={{ websites.next_page_number }}&search={{ request.GET.search }}" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500">Suivante</a>
+                    </li>
+                    <li>
+                        <a href="?page={{ websites.paginator.num_pages }}&search={{ request.GET.search }}" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500">Dernière &raquo;</a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </nav>
+        </div>
+        {% endif %}
+        
+        {% else %}
+        <p class="text-red-500">Aucun site trouvé correspondant à vos critères.</p>
+        {% endif %}
+    </div>
+{% comment %} 
+    <div class="max-w-7xl mx-auto p-6">
+        <h1 class="text-3xl font-bold text-center mb-8">Publicités Vidéo</h1>
+        
+        <ul class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+            {% for publicite in publicites %}
+                <li class="bg-white rounded-lg shadow-md overflow-hidden">
+                    <!-- Image Thumbnail -->
+                    <div class="relative">
+                        {% if publicite.thumbnail %}
+                            <!-- Lien cliquable sur l'image -->
+                            <a href="{% url 'fetch_video_pub' slug=publicite.slug %}" target="_blank">
+                                <img src="{{ publicite.thumbnail.url }}" alt="{{ publicite.title }}" class="w-full h-56 object-cover cursor-pointer">
+                                
+                                <!-- Superposition de l'image de lecture -->
+                                <div class="absolute top-0 left-0 w-full h-full flex justify-center items-center bg-black bg-opacity-50 hover:bg-opacity-70 transition-opacity duration-200">
+                                    <img src="{% static 'img/playvideo.jpg' %}" alt="Play" class="w-16 h-16">
+                                </div>
+                            </a>
+                        {% else %}
+                            <div class="w-full h-56 bg-gray-300 flex items-center justify-center">
+                                <span class="text-white">Pas de miniature</span>
+                            </div>
+                        {% endif %}
+                    </div>
+        
+                    <div class="p-4">
+                        <h2 class="text-xl font-semibold text-gray-800">{{ publicite.title }}</h2>
+                        <p class="text-gray-600 mt-2">{{ publicite.description|slice:":100" }}...</p>
+                        <p class="text-gray-500 text-sm"><strong>Publié le : </strong>{{ publicite.created }}</p>
+        
+                        <!-- Lien pour visiter le site de la publicité -->
+                        <div class="mt-4">
+                            <a href="{{ publicite.link }}" target="_blank" class="inline-block text-blue-500 hover:text-blue-700 font-semibold">Visiter nous</a>
+                        </div>
+                    </div> 
+                </li>
+            {% empty %}
+                <li class="text-center text-xl font-semibold text-gray-600 col-span-full">Aucune publicité vidéo disponible.</li>
+            {% endfor %}
+        </ul>
+    </div> {% endcomment %}
+</div>
+    
+    
+</section>
+  <!-- Section explicative pour l'achat -->
+  <div class="bg-white p-8 mt-12 rounded-lg shadow-lg">
+    <h2 class="text-2xl font-bold text-gray-800 mb-4">Comment acheter sur notre plateforme ?</h2>
+    <p class="text-gray-600 mb-6">
+        Pour acheter sur notre plateforme, suivez simplement les étapes suivantes :
+        <ol class="list-decimal pl-5">
+            <li>Inscrivez-vous sur notre site.</li>
+            <li>Choisissez vos produits préférés parmi notre catalogue.</li>
+            <li>Ajoutez-les à votre panier et procédez au paiement sécurisé.</li>
+            <li>Accédez immédiatement à notre guide vidéo et commencez à apprendre !</li>
+        </ol>
+    </p>
+    <p class="text-gray-600 mb-6">
+        Si vous souhaitez en savoir plus sur le processus ou obtenir des conseils pour commencer, consultez les vidéos explicatives disponibles ci-dessous.
+    </p>
+
+    <!-- Bouton d'appel à l'action pour aller à la liste de vidéos explicatives -->
+    <div class="text-center">
+        <a href="{% url 'video_list' %}" class="inline-block bg-blue-600 text-white py-2 px-6 rounded-lg hover:bg-blue-700 transition duration-300">
+            Voir comment s'y prendre
+        </a>
+    </div>
+</div>
+<section class="bg-white section-padding relative" style="background-image: url('{% static 'img/zando1.jpg' %}'); background-size: cover; background-position: center;">
+    <div class="absolute inset-0 bg-black opacity-30"></div> <!-- Overlay sombre optionnel -->
+    
+    <!-- Ajout de padding en haut et en bas du contenu -->
+    <div class="container mx-auto px-4 py-16 relative z-10">
+        <div class="flex flex-col md:flex-row mb-32">
+            
+            <!-- Section des informations de contact -->
+            <div class="md:w-1/2 mb-8 animate-box" data-animate-effect="fadeInUp">
+                <h5 class="text-xl font-semibold text-white">Information</h5>
+                <p class="mb-8 text-gray-200">Voici nos contacts qui sont 7/7 opérationnels pour répondre à vos besoins.</p>
+  
+                <div class="flex items-center mb-4">
+                    <div class="mr-4">
+                        <img src="{% static 'img/icons/c1.svg' %}" alt="" class="w-8 h-8">
+                    </div>
+                    <div>
+                        <div class="font-semibold text-white">Appelez-nous</div>
+                        <div class="text-gray-200"><a href="tel:0972489318" class="text-blue-400 hover:underline">+ 243972489318</a></div>
+                    </div>
+                </div>
+  
+                <div class="flex items-center">
+                    <div class="mr-4">
+                        <img src="{% static 'img/icons/c2.svg' %}" alt="" class="w-8 h-8">
+                    </div>
+                    <div>
+                        <div class="font-semibold text-white">Envoyer un email</div>
+                        <div class="text-gray-200"><a href="mailto:ngelekapeniel@gmail.com" class="text-blue-400 hover:underline">ngelekapeniel@gmail.com</a></div>
+                    </div>
+                </div>
+            </div>
+  
+            <!-- Section du formulaire de contact -->
+            <div class="md:w-1/2 md:ml-8 animate-box" data-animate-effect="fadeInUp">
+                <div class="form-box p-6 border rounded-lg shadow bg-white">
+                    <h5 class="text-xl font-semibold mb-4">Contacter nous</h5>
+                    <form action="https://api.web3forms.com/submit" method="POST">
+                        <input type="hidden" name="access_key" value="caf3e508-4fa2-4d40-93d9-792231b7c6ad">
+                        
+                        <div class="mb-4">
+                            <input name="name" type="text" required placeholder="Votre Nom *" class="w-full p-2 border rounded" />
+                        </div>
+                        <div class="flex mb-4">
+                            <div class="w-1/2 pr-2">
+                                <input name="email" type="email" required placeholder="Votre Email *" class="w-full p-2 border rounded" />
+                            </div>
+                            <div class="w-1/2 pl-2">
+                                <input name="phone" type="text" required placeholder="Votre Numéro *" class="w-full p-2 border rounded" />
+                            </div>
+                        </div>
+                        <div class="mb-4">
+                            <input name="subject" type="text" required placeholder="Entrer le Service recherché" class="w-full p-2 border rounded" />
+                        </div>
+                        <div class="mb-4">
+                            <textarea name="msg" required placeholder="Déterminer votre commande *" class="w-full p-2 border rounded"></textarea>
+                        </div>
+                        <div>
+                            <input name="submit" type="submit" value="Envoyer maintenant" class="bg-blue-600 text-white p-2 rounded hover:bg-blue-700 cursor-pointer" />
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+  </section>
+  <!-- Popup pour afficher l'image agrandie -->
+<div id="imagePopup" class="fixed inset-0 bg-gray-800 bg-opacity-75 flex items-center justify-center hidden">
+    <div class="bg-white p-4 rounded-xl max-w-lg">
+        <span class="absolute top-0 right-0 p-3 cursor-pointer text-white bg-red-600 rounded-full text-3xl flex justify-center items-center" onclick="hideImagePopup()">X</span>
+        <img id="popupImage" src="" alt="Image agrandie" class="w-full h-auto rounded-lg">
+    </div>
+</div>
+  <style>
+    #scrollingStores {
+        animation: scrollLeft 30s linear infinite;
+    }
+
+    @keyframes scrollLeft {
+        0% {
+            transform: translateX(0);
+        }
+        100% {
+            transform: translateX(-100%);
+        }
+    }
+</style>
+
+<!-- JavaScript pour contrôler l'ouverture/fermeture du slide -->
+<script>
+    const openSlideButton = document.getElementById('open-slide');
+    const searchSlide = document.getElementById('search-slide');
+    const closeSlideButton = document.getElementById('close-slide');
+
+    openSlideButton.addEventListener('click', () => {
+        searchSlide.classList.remove('hidden');
+    });
+
+    closeSlideButton.addEventListener('click', () => {
+        searchSlide.classList.add('hidden');
+    });
+</script>
+<script>
+    const scrollingContainer = document.getElementById("scrollingStores");
+
+    scrollingContainer.addEventListener("mouseover", function() {
+        scrollingContainer.style.animationPlayState = "paused";
+    });
+
+    scrollingContainer.addEventListener("mouseleave", function() {
+        scrollingContainer.style.animationPlayState = "running";
+    });
+     // Afficher le popup avec l'image agrandie
+     function showImagePopup(imageUrl) {
+        document.getElementById('popupImage').src = imageUrl;
+        document.getElementById('imagePopup').classList.remove('hidden');
+    }
+
+    // Masquer le popup
+    function hideImagePopup() {
+        document.getElementById('imagePopup').classList.add('hidden');
+    }
+</script>
+  
+{% endblock content %}

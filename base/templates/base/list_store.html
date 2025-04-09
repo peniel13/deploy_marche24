@@ -1,0 +1,382 @@
+{% extends "base.html" %}
+{% load static %}
+{% block content %}
+<!-- Template : list_store.html -->
+<section class="container mx-auto mt-8 px-4">
+    <h2 class="text-3xl font-bold mb-4">Explorer les boutiques, mabaya du grand marché Zando de Kinshasa à partir de votre téléphone ou PC et acheter aussi directement.</h2>
+    <p class="text-lg font-semibold">
+        Total des magasins : <span class="text-blue-600">{{ total_stores }}</span> |
+        Catégories de magasins : <span class="text-green-600">{{ total_categorystores }}</span> |
+        Types de magasins : <span class="text-red-600">{{ total_typestores }}</span>
+    </p>
+    <!-- Formulaire de recherche -->
+    <!-- Formulaire de recherche mobile -->
+    <section id="search-slide" class="sm:hidden fixed top-0 left-0 w-full bg-gray-900 bg-opacity-75 z-50 hidden">
+        <div class="flex justify-between items-center p-4">
+            <h2 class="text-white font-semibold">Filtres de recherche</h2>
+            <button id="close-slide" class="text-white">X</button>
+        </div>
+        <form method="GET" action="#stores" class="p-4 bg-white">
+            <!-- Champ de recherche par nom -->
+            <div class="flex flex-col mb-4">
+                <label for="nom" class="text-lg font-semibold">Nom du Store</label>
+                <input type="text" name="nom" value="{{ store_name }}" placeholder="Rechercher par nom" class="px-4 py-2 border border-gray-300 rounded-lg">
+            </div>
+            <!-- Champ de recherche par adresse -->
+        <div class="flex flex-col mb-4">
+            <label for="adresse" class="text-lg font-semibold">Adresse</label>
+            <input type="text" name="adresse" value="{{ store_address }}" placeholder="Rechercher par adresse" class="px-4 py-2 border border-gray-300 rounded-lg">
+        </div>
+            <!-- Sélecteur de typestore (Indépendant) -->
+            <div class="flex flex-col mb-4">
+                <label for="typestore" class="text-lg font-semibold">Type de Store</label>
+                <select name="typestore" id="id_typestore" class="px-4 py-2 border border-gray-300 rounded-lg">
+                    <option value="">Choisir un Type de Store</option>
+                    {% for typestore in typestores %}
+                        <option value="{{ typestore.id }}" {% if typestore.id == request.GET.typestore %}selected{% endif %}>{{ typestore.nom }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+    
+            <!-- Sélecteur de categorystore (Indépendant) -->
+            <div class="flex flex-col mb-4">
+                <label for="categorystore" class="text-lg font-semibold">Catégorie</label>
+                <select name="categorystore" id="id_categorystore" class="px-4 py-2 border border-gray-300 rounded-lg">
+                    <option value="">Choisir une catégorie</option>
+                    {% for categorystore in categorystores %}
+                        <option value="{{ categorystore.id }}" {% if categorystore.id == request.GET.categorystore %}selected{% endif %}>{{ categorystore.nom }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+    
+            <!-- Bouton de soumission -->
+            <div class="flex justify-center items-end">
+                <button type="submit" class="px-6 py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 w-full">
+                    Rechercher
+                </button>
+            </div>
+        </form>
+    </section>
+    
+    <!-- Bouton pour ouvrir les filtres (mobile) -->
+    <!-- Bouton pour ouvrir les filtres (mobile) -->
+    <div class="sm:hidden text-center mt-4 mb-8">
+        <button id="open-slide" class="px-6 py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 w-full">
+            Ouvrir recherche rapide
+        </button>
+    </div>   
+    {% comment %} <div class="sm:hidden text-center mt-4 mb-8">
+        <button id="open-slide" class="px-6 py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 w-full">
+            Ouvrir recherche rapide
+        </button>
+    </div> {% endcomment %}
+
+    <!-- Formulaire pour desktop -->
+    <section id="search-desktop" class="hidden sm:block py-8 bg-gray-100">
+        <div class="container mx-auto px-4">
+            <form method="GET" action="#stores" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <!-- Champ de recherche par nom -->
+                <div class="flex flex-col">
+                    <label for="nom" class="text-lg font-semibold">Nom du Store</label>
+                    <input type="text" name="nom" value="{{ store_name }}" placeholder="Rechercher par nom" class="px-4 py-2 border border-gray-300 rounded-lg">
+                </div>
+                <!-- Champ de recherche par adresse -->
+            <div class="flex flex-col">
+                <label for="adresse" class="text-lg font-semibold">Adresse</label>
+                <input type="text" name="adresse" value="{{ store_address }}" placeholder="Rechercher par adresse" class="px-4 py-2 border border-gray-300 rounded-lg">
+            </div>
+                <!-- Sélecteur de typestore -->
+                <div class="flex flex-col">
+                    <label for="typestore" class="text-lg font-semibold">Type de Store</label>
+                    <select name="typestore" id="id_typestore" class="px-4 py-2 border border-gray-300 rounded-lg">
+                        <option value="">Choisir un Type de Store</option>
+                        {% for typestore in typestores %}
+                            <option value="{{ typestore.id }}" {% if typestore.id == request.GET.typestore %}selected{% endif %}>{{ typestore.nom }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- Sélecteur de categorystore -->
+                <div class="flex flex-col">
+                    <label for="categorystore" class="text-lg font-semibold">Catégorie</label>
+                    <select name="categorystore" id="id_categorystore" class="px-4 py-2 border border-gray-300 rounded-lg">
+                        <option value="">Choisir une catégorie</option>
+                        {% for categorystore in categorystores %}
+                            <option value="{{ categorystore.id }}" {% if categorystore.id == request.GET.categorystore %}selected{% endif %}>{{ categorystore.nom }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="flex justify-center items-end sm:col-span-2 lg:col-span-4 mt-6">
+                    <button type="submit" class="px-6 py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 w-full sm:w-auto">
+                        Rechercher
+                    </button>
+                </div>
+            </form>
+        </div>
+    </section>
+
+    <!-- Affichage des Stores -->
+    <section id="stores" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
+        {% for store in stores %}
+            <div class="transform transition-transform hover:scale-105 hover:shadow-lg duration-300 mb-6">
+                <div class="bg-white p-6 rounded-lg shadow-lg hover:shadow-2xl">
+                    {% if store.thumbnail %}
+                        <img class="w-full h-48 object-cover rounded-t-lg" src="{{ store.thumbnail.url }}" alt="{{ store.name }}">
+                    {% else %}
+                        <img class="w-full h-48 object-cover rounded-t-lg" src="{% static 'img/default-store.jpg' %}" alt="Image par défaut du Store">
+                    {% endif %}
+                    
+                    <h3 class="text-xl font-semibold text-gray-800 mt-4">{{ store.name }}</h3>
+                    <p class="text-lg text-gray-600">{{ store.adresse|truncatewords:4 }}</p>
+    
+                    <!-- Note du Store -->
+                    <div class="flex items-center mt-2">
+                        <p class="text-yellow-500">
+                            {% for i in range_10 %}
+                                {% if i <= store.average_rating %}
+                                    &#9733;
+                                {% else %}
+                                    &#9734;
+                                {% endif %}
+                            {% endfor %}
+                        </p>
+                        <span class="text-sm text-gray-500 ml-2">Note moyenne : {{ store.average_rating|default:"0" }}/10</span>
+                    </div>
+    
+                    <!-- Boutons de gestion -->
+                    <div class="mt-4">
+                        <a href="{% url 'store_detail' store.slug %}" class="inline-block px-6 py-3 text-white bg-blue-600 hover:bg-blue-800 rounded-md font-semibold transition duration-300">
+                            Voir plus
+                        </a>
+                    </div>
+                </div>
+            </div>
+        {% empty %}
+            <p class="text-center text-lg text-gray-600">Aucun store trouvé avec ces critères.</p>
+        {% endfor %}
+    </section>
+    
+
+    <!-- Pagination -->
+    {% if stores.has_other_pages %}
+<div class="mt-8">
+    <nav aria-label="Pagination des stores" class="flex justify-center">
+        <ul class="flex space-x-4">
+            
+            {% if stores.has_previous %}
+            <li>
+                <a href="?page=1#stores" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+                    &laquo; Première
+                </a>
+            </li>
+            <li>
+                <a href="?page={{ stores.previous_page_number }}#stores" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+                   <
+                </a>
+            </li>
+            {% endif %}
+
+            <!-- Affichage de la page actuelle -->
+            <li>
+                <span class="px-4 py-2 bg-blue-600 text-white rounded-lg">
+                    {{ stores.number }}
+                </span>
+            </li>
+
+            {% if stores.number < stores.paginator.num_pages %}
+            <li>
+                <a href="?page={{ stores.paginator.num_pages }}#stores" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-blue-600 hover:text-white">
+                    {{ stores.paginator.num_pages }}
+                </a>
+            </li>
+            {% endif %}
+
+            {% if stores.has_next %}
+            <li>
+                <a href="?page={{ stores.next_page_number }}#stores" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+                    >
+                </a>
+            </li>
+            <li>
+                <a href="?page={{ stores.paginator.num_pages }}#stores" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+                    Dernière &raquo;
+                </a>
+            </li>
+            {% endif %}
+        </ul>
+    </nav>
+</div>
+{% endif %}
+
+
+
+</section>
+<section id="favorite_stores" class="py-16 bg-gray-100">
+    <div class="max-w-6xl mx-auto text-center">
+        <h2 class="text-3xl font-semibold mb-8">Boutiques Populaires</h2>
+        
+        <!-- Carrousel Glide.js -->
+        <div class="relative w-full glide-01">
+            <!-- Carousel wrapper -->
+            <div class="overflow-hidden" data-glide-el="track">
+                <ul class="relative w-full overflow-hidden p-0 whitespace-no-wrap flex flex-no-wrap [backface-visibility: hidden] [transform-style: preserve-3d] [touch-action: pan-Y] [will-change: transform]">
+                    {% if favorite_stores %}
+                        {% for store in favorite_stores %}
+                            <li class="min-w-[250px] md:w-[calc(33.33%-24px)]">
+                                <div class="bg-white p-6 rounded-lg shadow-lg hover:shadow-2xl mb-6">
+                                    {% if store.thumbnail %}
+                                        <img class="w-full h-48 object-cover rounded-t-lg" src="{{ store.thumbnail.url }}" alt="{{ store.name }}">
+                                    {% else %}
+                                        <img class="w-full h-48 object-cover rounded-t-lg" src="{% static 'img/default-store.jpg' %}" alt="Image par défaut du Store">
+                                    {% endif %}
+                                    
+                                    <h3 class="text-xl font-semibold text-gray-800 mt-4">{{ store.name }}</h3>
+                                    <p class="text-lg text-gray-600">{{ store.commune }}</p>
+                                    
+                                    <div class="flex items-center mt-2">
+                                        <p class="text-yellow-500">
+                                            {% for i in range_10 %}
+                                                {% if i <= store.average_rating %}
+                                                    &#9733;
+                                                {% else %}
+                                                    &#9734;
+                                                {% endif %}
+                                            {% endfor %}
+                                        </p>
+                                        <span class="text-sm text-gray-500 ml-2">Note moyenne : {{ store.average_rating|default:"0" }}/10</span>
+                                    </div>
+
+                                    <div class="mt-4">
+                                        <a href="{% url 'store_detail' store.slug %}" class="inline-block px-6 py-3 text-white bg-blue-600 hover:bg-blue-800 rounded-md font-semibold transition duration-300">
+                                            Voir plus
+                                        </a>
+                                    </div>
+                                </div>
+                            </li>
+                        {% endfor %}
+                    {% else %}
+                        <p class="text-center text-lg text-gray-600">Aucune boutique favorite trouvée.</p>
+                    {% endif %}
+                </ul>
+            </div>
+            
+            <!-- Carousel controls -->
+            <div class="absolute left-0 flex items-center justify-between w-full h-0 px-4 top-1/2" data-glide-el="controls">
+                <button class="inline-flex items-center justify-center w-8 h-8 transition duration-300 border rounded-full lg:w-12 lg:h-12 text-slate-700 border-slate-700 hover:text-slate-900 hover:border-slate-900 focus-visible:outline-none bg-white/20" data-glide-dir="<" aria-label="previous slide">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M6.75 15.75L3 12m0 0l3.75-3.75M3 12h18"/>
+                    </svg>
+                </button>
+                <button class="inline-flex items-center justify-center w-8 h-8 transition duration-300 border rounded-full lg:w-12 lg:h-12 text-slate-700 border-slate-700 hover:text-slate-900 hover:border-slate-900 focus-visible:outline-none bg-white/20" data-glide-dir=">" aria-label="next slide">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M17.25 8.25L21 12m0 0l-3.75 3.75M21 12H3"/>
+                    </svg>
+                </button>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Glide.js Script -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Glide.js/3.0.2/glide.js"></script>
+
+<script>
+    var glide01 = new Glide('.glide-01', {
+        type: 'carousel',
+        focusAt: 'center',
+        perView: 3,
+        autoplay: 3000,
+        animationDuration: 700,
+        gap: 24,
+        classes: {
+            activeNav: '[&>*]:bg-slate-700',
+        },
+        breakpoints: {
+            1024: {
+                perView: 2
+            },
+            640: {
+                perView: 1
+            }
+        },
+    });
+
+    glide01.mount();
+</script>
+
+
+<!-- JavaScript pour contrôler l'ouverture/fermeture du slide -->
+<script>
+    const openSlideButton = document.getElementById('open-slide');
+    const searchSlide = document.getElementById('search-slide');
+    const closeSlideButton = document.getElementById('close-slide');
+
+    openSlideButton.addEventListener('click', () => {
+        searchSlide.classList.remove('hidden');
+    });
+
+    closeSlideButton.addEventListener('click', () => {
+        searchSlide.classList.add('hidden');
+    });
+</script>
+<script>
+    const scrollingContainer = document.getElementById("scrollingStores");
+
+    scrollingContainer.addEventListener("mouseover", function() {
+        scrollingContainer.style.animationPlayState = "paused";
+    });
+
+    scrollingContainer.addEventListener("mouseleave", function() {
+        scrollingContainer.style.animationPlayState = "running";
+    });
+</script>
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script>
+    {% comment %} $(document).ready(function () {
+        // Lorsqu'un typestore est sélectionné
+        $('#id_typestore').change(function () {
+            var typestoreId = $(this).val();  // Récupère l'id du typestore sélectionné
+            
+            // Si un typestore est sélectionné
+            if (typestoreId) {
+                $.ajax({
+                    url: '{% url "get_cellules" %}',  // Appel à l'URL de votre vue AJAX
+                    data: {
+                        'typestore': typestoreId  // Envoi de l'id du typestore sélectionné
+                    },
+                    success: function (data) {
+                        // Remplir le menu déroulant categorystore avec les nouvelles options
+                        var $categorystoreSelect = $('#id_categorystore');
+                        $categorystoreSelect.empty();  // Vide les options actuelles
+                        $categorystoreSelect.append('<option value="">Choisir une catégorie</option>');  // Ajoute l'option par défaut
+                        
+                        // Ajoute les options reçues dans la réponse
+                        $.each(data, function(index, categorystore) {
+                            $categorystoreSelect.append('<option value="' + categorystore.id + '">' + categorystore.name + '</option>');
+                        });
+                    }
+                });
+            } else {
+                $('#id_categorystore').empty().append('<option value="">Choisir une catégorie</option>');  // Réinitialise le select si aucun typestore sélectionné
+            }
+        });
+    }); {% endcomment %}
+</script>
+
+<script>
+    const openSlideButton = document.getElementById('open-slide');
+    const searchSlide = document.getElementById('search-slide');
+    const closeSlideButton = document.getElementById('close-slide');
+
+    openSlideButton.addEventListener('click', () => {
+        searchSlide.classList.remove('hidden');
+    });
+
+    closeSlideButton.addEventListener('click', () => {
+        searchSlide.classList.add('hidden');
+    });
+</script>
+
+{% endblock content %}
