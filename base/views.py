@@ -1,8 +1,9 @@
 from django.shortcuts import render,redirect
-from core.models import Store, Category, Product,Typestore,CategoryStore,Advertisement,UserPoints,AdInteraction
+from core.models import Store, Category, Product,Typestore,CategoryStore,Advertisement,UserPoints,AdInteraction,UserLocation
 from .models import WebsiteLink,Publicite
 from core.forms import AdInteractionForm
 from django.db.models import Q
+from django.db import transaction
 
 # Create your views here.
 def my_view(request):
@@ -58,60 +59,130 @@ def index(request):
         websites = paginator.page(paginator.num_pages)
      # Récupérer les publicités vidéo
     ads = Advertisement.objects.all().order_by('-created_at')[:3]  # Trie les publicités par date de création décroissante
-    form = AdInteractionForm()
-    # Récupérer la dernière publicité active pour affichage dans le modal
-    
-    # Vérifie si l'utilisateur est authentifié
-    if request.user.is_authenticated:
-        # Récupérer les points de l'utilisateur pour l'affichage dans la vue (optionnel)
-        user_points = UserPoints.objects.filter(user=request.user).first()
-        if not user_points:
-            user_points = UserPoints.objects.create(user=request.user, points=0)
 
-        # Vérifier si l'utilisateur a liké chaque publicité
+    if request.user.is_authenticated:
+        user = request.user
+        user_points = UserPoints.objects.filter(user=user).first()
+        if not user_points:
+            user_points = UserPoints.objects.create(user=user, points=0)
+
+        user_sex = getattr(user, 'sex', None)
+        user_commune = (getattr(user, 'commune', '') or '').lower()
+        user_city = (getattr(user, 'city', '') or '').lower()
+        user_address = (getattr(user, 'address', '') or '').lower().split()
+        user_keywords = (getattr(user, 'interests', '') or '').lower().split(',')
+
+        user_location = UserLocation.objects.filter(user=user).first()
+        user_lat = float(user_location.latitude) if user_location and user_location.latitude else None
+        user_lon = float(user_location.longitude) if user_location and user_location.longitude else None
+
+        filtered_ads = []
+
         for ad in ads:
+            show_to_user = False
+
+            if ad.target_all_users:
+                show_to_user = True
+            else:
+                match_count = 0
+                total_conditions = 0
+
+                # Sexe ciblé
+                if ad.target_sex:
+                    total_conditions += 1
+                    if ad.target_sex == user_sex:
+                        match_count += 1
+
+                # Commune ciblée
+                if ad.target_communes:
+                    total_conditions += 1
+                    ad_communes = [c.lower() for c in ad.target_communes]
+                    if user_commune in ad_communes:
+                        match_count += 1
+
+                # Ville ciblée
+                if ad.target_cities:
+                    total_conditions += 1
+                    ad_cities = [c.lower() for c in ad.target_cities]
+                    if user_city in ad_cities:
+                        match_count += 1
+
+                # Mots-clés ciblés
+                if ad.target_keywords:
+                    total_conditions += 1
+                    ad_keywords = [k.strip().lower() for k in ad.target_keywords.split(',')]
+                    if any(k in user_keywords for k in ad_keywords):
+                        match_count += 1
+
+                # Adresse ciblée (sous forme de mots-clés dans une phrase)
+                if ad.target_address_keywords:
+                    total_conditions += 1
+                    ad_address_keywords = [k.strip().lower() for k in ad.target_address_keywords.split(',')]
+                    if any(k in user_address for k in ad_address_keywords):
+                        match_count += 1
+
+                # Ciblage géographique par distance
+                if ad.target_latitude and ad.target_longitude and ad.target_radius_km and user_lat and user_lon:
+                    total_conditions += 1
+                    distance = ((user_lat - float(ad.target_latitude))**2 + (user_lon - float(ad.target_longitude))**2) ** 0.5 * 111  # approx conversion deg -> km
+                    if distance <= float(ad.target_radius_km):
+                        match_count += 1
+
+                if total_conditions > 0 and match_count == total_conditions:
+                    show_to_user = True
+
+            if show_to_user:
+                if ad.max_target_users:
+                    with transaction.atomic():
+                        ad = Advertisement.objects.select_for_update().get(id=ad.id)
+                        if ad.targeted_users.count() >= ad.max_target_users:
+                            show_to_user = False
+                        elif not ad.targeted_users.filter(id=user.id).exists():
+                            ad.targeted_users.add(user)
+                elif not ad.targeted_users.filter(id=user.id).exists():
+                    ad.targeted_users.add(user)
+
             ad.user_has_liked = AdInteraction.objects.filter(
-                user=request.user, 
-                ad=ad, 
+                user=user,
+                ad=ad,
                 interaction_type='like'
             ).exists()
+
+            if show_to_user:
+                filtered_ads.append(ad)
+
+        ads = filtered_ads
+
     else:
-        # Si l'utilisateur n'est pas authentifié, on donne 0 points
         user_points = None
         for ad in ads:
             ad.user_has_liked = False
+        ads = [ad for ad in ads if ad.target_all_users]
 
-    # Gérer les interactions
     if request.method == 'POST':
         form = AdInteractionForm(request.POST)
         if form.is_valid():
             ad = form.cleaned_data['ad']
             interaction_type = form.cleaned_data['interaction_type']
-            
-            # Vérifier si l'utilisateur a déjà effectué cette interaction
+
             if request.user.is_authenticated and not AdInteraction.objects.filter(user=request.user, ad=ad, interaction_type=interaction_type).exists():
-                # Créer l'interaction
                 AdInteraction.objects.create(
                     user=request.user,
                     ad=ad,
                     interaction_type=interaction_type
                 )
-                
-                # Ajouter des points pour l'utilisateur
-                points_to_add = 0
-                if interaction_type == 'like':
-                    points_to_add = 1
-                elif interaction_type == 'comment':
-                    points_to_add = 2
-                elif interaction_type == 'share':
-                    points_to_add = 5
 
-                # Ajouter les points à l'utilisateur si authentifié
-                if request.user.is_authenticated:
-                    user_points.add_ad_points(points_to_add)
-                
-                # Rediriger pour éviter la soumission multiple
+                points_to_add = {
+                    'like': 1,
+                    'comment': 2,
+                    'share': 3
+                }.get(interaction_type, 0)
+
+                user_points.add_ad_points(points_to_add)
+
                 return redirect('advertisement_list')
+    else:
+        form = AdInteractionForm()
             
               
       # Les 3 dernières publicités

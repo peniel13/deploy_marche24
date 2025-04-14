@@ -86,13 +86,18 @@
                 Se connecter
             </a>
         {% endif %}
+        {% if ad.url %}
+    <a href="{% url 'visit_ad_url' ad.slug %}" 
+       class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-800 mt-4 inline-block">
+        🌐 Visiter le lien de la pub  👁 Visites : {{ ad.visits_count }}
+    </a>
+    {% if not user.is_authenticated %}
+        <p class="text-sm text-red-500 mt-2">Connecte-toi pour gagner des points en visitant les pubs.</p>
+    {% endif %}
+{% endif %}
 
         <!-- Bouton retour -->
-        <div class="mt-6">
-            <a href="{% url 'advertisement_list' %}" class="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-700">
-                Retour aux publicités
-            </a>
-        </div>
+       
     </div>
 
 <!-- Galerie d'images associées -->

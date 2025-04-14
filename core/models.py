@@ -7,21 +7,76 @@ from decimal import Decimal
 # Create your models here.
 
 
+# class CustomUser(AbstractUser):
+#     email = models.EmailField(unique=True)
+#     profile_pic = models.ImageField(upload_to="p_img", blank=True, null=True)
+#     address = models.CharField(max_length=50, blank=True, null=True)
+#     phone = models.CharField(max_length=11, blank=True, null=True)
+#     role = models.CharField(max_length=50, blank=True, null=True)
+#     bio = models.TextField(blank=True, null=True)  # Ajout du champ de vérification
+#     last_ip = models.GenericIPAddressField(blank=True, null=True)
+#     device_fingerprint = models.CharField(max_length=255, blank=True, null=True)
+
+#     USERNAME_FIELD = 'email'
+#     REQUIRED_FIELDS = ['username']
+    
+#     def __str__(self):
+#         return self.email
+from django.contrib.auth.models import AbstractUser
+from django.db import models
+
+SEX_CHOICES = [
+    ('male', 'Homme'),
+    ('female', 'Femme'),
+]
+
+COMMUNE_CHOICES = [
+    ('lubumbashi', 'Lubumbashi'),
+    ('annexe', 'Annexe'),
+    ('kenya', 'Kenya'),
+    ('katuba', 'Katuba'),
+    ('rwashi', 'Rwashi'),
+    ('kampemba', 'Kampemba'),
+    ('kamalondo', 'Kamalondo'),
+    # ... ajoute tes communes ici
+]
+
+CITY_CHOICES = [
+    ('lubumbashi', 'Lubumbashi'),
+    ('likasi', 'Likasi'),
+    ('kolwezi', 'Kolwezi'),
+    ('kasumbalesa', 'Kasumbalesa'),
+    ('kalemie', 'Kalemie'),
+    ('kamina', 'Kamina'),
+    ('kinshasa', 'Kinshasa'),
+    ('kisangani', 'Kisangani'),
+    ('mbujimayi', 'Mbujimayi'),
+    
+    # ... ajoute d’autres villes
+]
+
 class CustomUser(AbstractUser):
     email = models.EmailField(unique=True)
     profile_pic = models.ImageField(upload_to="p_img", blank=True, null=True)
     address = models.CharField(max_length=50, blank=True, null=True)
     phone = models.CharField(max_length=11, blank=True, null=True)
     role = models.CharField(max_length=50, blank=True, null=True)
-    bio = models.TextField(blank=True, null=True)  # Ajout du champ de vérification
+    bio = models.TextField(blank=True, null=True)
     last_ip = models.GenericIPAddressField(blank=True, null=True)
     device_fingerprint = models.CharField(max_length=255, blank=True, null=True)
 
+    # Ajouts pour ciblage :
+    sex = models.CharField(max_length=10, choices=SEX_CHOICES, blank=True, null=True)
+    commune = models.CharField(max_length=50, choices=COMMUNE_CHOICES, blank=True, null=True)
+    city = models.CharField(max_length=50, choices=CITY_CHOICES, blank=True, null=True)
+    interests = models.TextField(blank=True, null=True)  # ex: "sport, mode, jeux vidéo"
+
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = ['username']
-    
+
     def __str__(self):
         return self.email
+
 
 class Typestore(models.Model):
     nom = models.CharField(max_length=100)
@@ -620,9 +675,24 @@ class Advertisement(models.Model):
     likes_count = models.PositiveIntegerField(default=0)
     comments_count = models.PositiveIntegerField(default=0)
     shares_count = models.IntegerField(default=0)
+    visits_count = models.PositiveIntegerField(default=0) 
     created_at = models.DateTimeField(auto_now_add=True)
     # Autres champs...
-    
+    # Nouveaux champs pour le ciblage
+    target_all_users = models.BooleanField(default=True)  # si True, tout le monde peut voir
+    target_sex = models.CharField(max_length=10, choices=SEX_CHOICES, blank=True, null=True)
+    target_communes = models.JSONField(blank=True, null=True)  # ex: ["cocody", "abobo"]
+    target_cities = models.JSONField(blank=True, null=True)    # ex: ["abidjan"]
+    target_keywords = models.TextField(blank=True, null=True)  # mots-clés séparés par virgule
+    max_target_users = models.PositiveIntegerField(blank=True, null=True)  # nombre max de personnes à atteindre
+    targeted_users = models.ManyToManyField('CustomUser', blank=True)  # ceux qui ont déjà vu
+    # models.py
+
+    target_address_keywords = models.TextField(blank=True, null=True, help_text="Mots-clés extraits de l'adresse.")
+    target_latitude = models.DecimalField(max_digits=20, decimal_places=18, blank=True, null=True)
+    target_longitude = models.DecimalField(max_digits=20, decimal_places=18, blank=True, null=True)
+    target_radius_km = models.DecimalField(max_digits=5, decimal_places=2, blank=True, null=True, help_text="Rayon en kilomètres autour de la position ciblée.")
+
     def get_absolute_url(self):
         return reverse('advertisement_detail', kwargs={'slug': self.slug})
 
@@ -658,6 +728,7 @@ class AdInteraction(models.Model):
         ('like', 'Like'),
         ('comment', 'Comment'),
         ('share', 'Share'),
+        ('visit', 'Visit'),
     ]
 
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
@@ -693,15 +764,7 @@ class AdInteraction(models.Model):
             self.ad.save()
             self.user.userpoints.save()
 
-    # def share_ad(self):
-    #     """ Ajouter un partage et gérer les points """
-    #     if not self.interaction_type == 'share':
-    #         self.interaction_type = 'share'
-    #         self.save()
-    #         self.ad.shares_count += 1
-    #         self.user.userpoints.points += 5  # Ajouter 5 points pour le premier partage
-    #         self.ad.save()
-    #         self.user.userpoints.save()
+   
     def share_ad(self):
         """ Ajouter un partage et gérer les points """
         # Vérifier combien de fois l'utilisateur a partagé cette annonce
@@ -711,7 +774,7 @@ class AdInteraction(models.Model):
             self.interaction_type = 'share'
             self.save()
             self.ad.shares_count += 1
-            self.user.userpoints.points += 5  # Ajouter 5 points pour chaque partage
+            self.user.userpoints.points += 3  # Ajouter 5 points pour chaque partage
             self.ad.save()
             self.user.userpoints.save()
         else:
@@ -778,6 +841,9 @@ class SpotPubStore(models.Model):
 
     def __str__(self):
         return f"Spot Pub pour {self.store.name}"
+
+
+# models.py
 
 
 

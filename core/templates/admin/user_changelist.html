@@ -1,0 +1,10 @@
+{% extends "admin/change_list.html" %}
+
+{% block content %}
+  <div class="messages">
+    <ul class="messagelist">
+      <li class="info">👥 Utilisateurs en ligne : <strong>{{ online_count }}</strong></li>
+    </ul>
+  </div>
+  {{ block.super }}
+{% endblock %}

@@ -1,6 +1,7 @@
 from django.urls import path
 from . import views
 from django.views.generic import RedirectView
+from .views import statistiques_view
 
 urlpatterns = [
     # path('signup',views.signup, name='signup'),
@@ -77,6 +78,8 @@ urlpatterns = [
     path('advertisement/<slug:slug>/share/', views.record_share, name='record_share'),
     path('rewards/<int:product_id>/',  views.detail_product_reward, name='detail_product_reward'),
     path('store/<slug:slug>/spotpub/', views.add_or_update_spotpub, name='add_or_update_spotpub'),
+    path('ad/<slug:slug>/visit/', views.visit_ad_url, name='visit_ad_url'),
+    path('statistiques/', statistiques_view, name='statistiques'),
     # path('rewards/<int:id>/', views.product_reward_detail, name='product_reward_detail'),
     # path('rewards/contact/<int:id>/', views.contact_product_reward, name='contact_product_reward'),
     

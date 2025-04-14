@@ -26,3 +26,25 @@ def get_device_fingerprint(request: HttpRequest) -> str:
     ip = get_client_ip(request)  # Récupère l'IP
     fingerprint = f"{user_agent}{ip}"  # Combine l'IP et l'user agent pour générer une empreinte
     return sha256(fingerprint.encode()).hexdigest()  # Retourne l'empreinte hashée
+
+from django.contrib.auth import get_user_model
+from django.core.cache import cache
+from django.utils import timezone
+import datetime
+
+def get_online_users():
+    User = get_user_model()
+    online_users = []
+    now = timezone.now()
+    for user in User.objects.filter(is_active=True):
+        last_seen = cache.get(f'seen_{user.id}')
+        if last_seen and (now - last_seen).seconds < 600:  # Moins de 10 minutes
+            online_users.append(user)
+    return online_users
+
+from django.contrib.auth import get_user_model
+from django.core.cache import cache
+
+def count_online_users():
+    User = get_user_model()
+    return sum(1 for user in User.objects.all() if cache.get(f'online-{user.id}'))

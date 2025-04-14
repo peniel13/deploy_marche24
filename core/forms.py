@@ -25,20 +25,76 @@ class RegisterForm(UserCreationForm):
         return cleaned_data
     
 
+from django import forms
+from django.contrib.auth import get_user_model
+
+SEX_CHOICES = [
+    ('male', 'Homme'),
+    ('female', 'Femme'),
+]
+
+COMMUNE_CHOICES = [
+    ('lubumbashi', 'Lubumbashi'),
+    ('annexe', 'Annexe'),
+    ('kenya', 'Kenya'),
+    ('katuba', 'Katuba'),
+    ('rwashi', 'Rwashi'),
+    ('kampemba', 'Kampemba'),
+    ('kamalondo', 'Kamalondo'),
+    # Ajoute ici toutes tes communes
+]
+
+CITY_CHOICES = [
+    ('lubumbashi', 'Lubumbashi'),
+    ('likasi', 'Likasi'),
+    ('kolwezi', 'Kolwezi'),
+    ('kasumbalesa', 'Kasumbalesa'),
+    ('kalemie', 'Kalemie'),
+    ('kamina', 'Kamina'),
+    ('kinshasa', 'Kinshasa'),
+    ('kisangani', 'Kisangani'),
+    ('mbujimayi', 'Mbujimayi'),
+    # Ajoute ici toutes tes villes
+]
+
 class UpdateProfileForm(forms.ModelForm):
     first_name = forms.CharField(widget=forms.TextInput(attrs={"class":"form-control", "placeholder": "Enter firstname"}))
     last_name = forms.CharField(widget=forms.TextInput(attrs={"class":"form-control", "placeholder": "Enter lastname"}))
     username = forms.CharField(widget=forms.TextInput(attrs={"class":"form-control", "placeholder": "Enter username"}))
     email = forms.CharField(widget=forms.EmailInput(attrs={"class":"form-control", "placeholder": "Enter email address"}))
-    profile_pic = forms.ImageField(widget=forms.FileInput(attrs={"class": "form-control", "placeholder": "Upload image"}))
-    address = forms.CharField(widget=forms.TextInput(attrs={"class":"form-control", "placeholder": "Enter address"}))
-    phone = forms.CharField(widget=forms.TextInput(attrs={"class":"form-control", "placeholder": "Enter phone"}))
-    bio = forms.CharField(widget=forms.Textarea(attrs={"class":"form-control", "placeholder": "Enter bio"}))
-    role = forms.CharField(widget=forms.TextInput(attrs={"class":"form-control", "placeholder": "Enter role"}))
+    profile_pic = forms.ImageField(required=False, widget=forms.FileInput(attrs={"class": "form-control", "placeholder": "Upload image"}))
+    address = forms.CharField(required=False, widget=forms.TextInput(attrs={"class":"form-control", "placeholder": "Enter address"}))
+    phone = forms.CharField(required=False, widget=forms.TextInput(attrs={"class":"form-control", "placeholder": "Enter phone"}))
+    bio = forms.CharField(required=False, widget=forms.Textarea(attrs={"class":"form-control", "placeholder": "Enter bio"}))
+    role = forms.CharField(required=False, widget=forms.TextInput(attrs={"class":"form-control", "placeholder": "Enter role"}))
+
+    # Nouveaux champs pour ciblage
+    sex = forms.ChoiceField(choices=SEX_CHOICES, required=False, widget=forms.Select(attrs={"class": "form-control"}))
+    commune = forms.ChoiceField(choices=COMMUNE_CHOICES, required=False, widget=forms.Select(attrs={"class": "form-control"}))
+    city = forms.ChoiceField(choices=CITY_CHOICES, required=False, widget=forms.Select(attrs={"class": "form-control"}))
+    interests = forms.CharField(required=False, widget=forms.TextInput(attrs={"class": "form-control", "placeholder": "Ex: sport, mode, jeux vidéo"}))
 
     class Meta:
         model = get_user_model()
-        fields = ["first_name", "last_name", "username", "email", "address", "bio", "phone", "role", "profile_pic"]
+        fields = [
+            "first_name", "last_name", "username", "email", "address", "bio", "phone",
+            "role", "profile_pic", "sex", "commune", "city", "interests"
+        ]
+
+# class UpdateProfileForm(forms.ModelForm):
+#     first_name = forms.CharField(widget=forms.TextInput(attrs={"class":"form-control", "placeholder": "Enter firstname"}))
+#     last_name = forms.CharField(widget=forms.TextInput(attrs={"class":"form-control", "placeholder": "Enter lastname"}))
+#     username = forms.CharField(widget=forms.TextInput(attrs={"class":"form-control", "placeholder": "Enter username"}))
+#     email = forms.CharField(widget=forms.EmailInput(attrs={"class":"form-control", "placeholder": "Enter email address"}))
+#     profile_pic = forms.ImageField(widget=forms.FileInput(attrs={"class": "form-control", "placeholder": "Upload image"}))
+#     address = forms.CharField(widget=forms.TextInput(attrs={"class":"form-control", "placeholder": "Enter address"}))
+#     phone = forms.CharField(widget=forms.TextInput(attrs={"class":"form-control", "placeholder": "Enter phone"}))
+#     bio = forms.CharField(widget=forms.Textarea(attrs={"class":"form-control", "placeholder": "Enter bio"}))
+#     role = forms.CharField(widget=forms.TextInput(attrs={"class":"form-control", "placeholder": "Enter role"}))
+
+#     class Meta:
+#         model = get_user_model()
+#         fields = ["first_name", "last_name", "username", "email", "address", "bio", "phone", "role", "profile_pic"]
 
 class StoreForm(forms.ModelForm):
     class Meta:
@@ -516,19 +572,78 @@ class ContactProductPointsForm(forms.ModelForm):
 
 from django import forms
 from .models import Advertisement
-
+from django import forms
+from .models import Advertisement
+from core.models import SEX_CHOICES, COMMUNE_CHOICES, CITY_CHOICES  # adapte le chemin selon ton projet
 class AdvertisementForm(forms.ModelForm):
+    target_communes = forms.MultipleChoiceField(
+        choices=COMMUNE_CHOICES,
+        required=False,
+        widget=forms.CheckboxSelectMultiple()
+    )
+    target_cities = forms.MultipleChoiceField(
+        choices=CITY_CHOICES,
+        required=False,
+        widget=forms.CheckboxSelectMultiple()
+    )
+
     class Meta:
         model = Advertisement
-        fields = ['title', 'description', 'media_type', 'media_file', 'url']
-        
+        fields = [
+            'title', 'description', 'media_type', 'media_file', 'url',
+            'target_all_users', 'target_sex', 'target_communes',
+            'target_cities', 'target_keywords', 'target_address_keywords',
+            'target_latitude', 'target_longitude', 'target_radius_km',
+            'max_target_users'
+        ]
         widgets = {
             'title': forms.TextInput(attrs={'class': 'form-control'}),
             'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 4}),
             'media_type': forms.Select(attrs={'class': 'form-control'}),
             'media_file': forms.ClearableFileInput(attrs={'class': 'form-control'}),
             'url': forms.URLInput(attrs={'class': 'form-control'}),
+            'target_all_users': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            'target_sex': forms.Select(choices=SEX_CHOICES, attrs={'class': 'form-control'}),
+            'target_keywords': forms.Textarea(attrs={
+                'class': 'form-control', 'placeholder': 'sport, mode, jeux...', 'rows': 2
+            }),
+            'target_address_keywords': forms.Textarea(attrs={
+                'class': 'form-control', 'placeholder': 'quartier, rue, avenue...', 'rows': 2
+            }),
+            'target_latitude': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.000001'}),
+            'target_longitude': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.000001'}),
+            'target_radius_km': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01'}),
+            'max_target_users': forms.NumberInput(attrs={'class': 'form-control'}),
         }
+
+    def clean_target_communes(self):
+        return self.cleaned_data.get('target_communes', [])
+
+    def clean_target_cities(self):
+        return self.cleaned_data.get('target_cities', [])
+
+    def save(self, commit=True):
+        instance = super().save(commit=False)
+        instance.target_communes = self.cleaned_data.get('target_communes', [])
+        instance.target_cities = self.cleaned_data.get('target_cities', [])
+        if commit:
+            instance.save()
+            self.save_m2m()
+        return instance
+
+
+# class AdvertisementForm(forms.ModelForm):
+#     class Meta:
+#         model = Advertisement
+#         fields = ['title', 'description', 'media_type', 'media_file', 'url']
+        
+#         widgets = {
+#             'title': forms.TextInput(attrs={'class': 'form-control'}),
+#             'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 4}),
+#             'media_type': forms.Select(attrs={'class': 'form-control'}),
+#             'media_file': forms.ClearableFileInput(attrs={'class': 'form-control'}),
+#             'url': forms.URLInput(attrs={'class': 'form-control'}),
+#         }
 
 from django import forms
 from .models import AdInteraction

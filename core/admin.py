@@ -4,24 +4,47 @@ from .models import Store,CategoryStore, Typestore
 from django.contrib.auth.admin import UserAdmin
 from .models import CustomUser
 # Register your models here.
+from .utils import get_online_users
+from django.contrib import admin
+from django.contrib.auth.admin import UserAdmin
+from .models import CustomUser
 
+# Définition de l'admin pour CustomUser
 class CustomUserAdmin(UserAdmin):
-    list_display = ('username', 'email', 'profile_pic', 'is_active',
-                    'is_staff', 'is_superuser', 'last_login','last_ip', 'device_fingerprint',)
+    list_display = ('username', 'email', 'profile_pic', 'sex', 'commune', 'city', 'interests', 'is_active', 'is_staff', 'is_superuser', 'last_login', 'last_ip', 'device_fingerprint')
+
+    # Formulaire de création d'un utilisateur
     add_fieldsets = (
         (
             None,
             {
                 "classes": ("wide",),
-                "fields": ("email", "username", "password1", "password2", "profile_pic"),
+                "fields": ("email", "username", "password1", "password2", "profile_pic", 'sex', 'commune', 'city', 'interests'),
             },
         ),
     )
-    # Définir les champs modifiables dans le formulaire d'édition d'un utilisateur
+
+    # Formulaire d'édition d'un utilisateur
     fieldsets = UserAdmin.fieldsets + (
-        (None, {'fields': ('last_ip', 'device_fingerprint')}),
+        (None, {'fields': ('last_ip', 'device_fingerprint', 'sex', 'commune', 'city', 'interests')}),
     )
+
+# Pour afficher des informations sur les utilisateurs en ligne
+    def changelist_view(self, request, extra_context=None):
+        online_users = get_online_users()
+        extra_context = extra_context or {}
+        extra_context['online_count'] = len(online_users)
+        return super().changelist_view(request, extra_context=extra_context)
+
+# Enregistre ton modèle avec cette configuration
 admin.site.register(CustomUser, CustomUserAdmin)
+
+
+
+
+
+
+
 
 class StoreAdmin(admin.ModelAdmin):
     prepopulated_fields = {"slug": ("name",)}
@@ -759,26 +782,51 @@ class CommentInline(admin.TabularInline):
     fields = ['user', 'content', 'created_at']
 
 from django.contrib import admin
+from django.contrib import admin
 from .models import Advertisement, PhotoAds
+from .forms import AdvertisementForm  # On importe le formulaire personnalisé
+from .forms import AdvertisementForm  # Formulaire personnalisé
 
-class PhotoAdsInline(admin.TabularInline):  # Permet d'afficher les images associées dans la page d'une publicité
+class PhotoAdsInline(admin.TabularInline):
     model = PhotoAds
-    extra = 1  # Nombre de champs vides supplémentaires pour l'ajout de nouvelles images
-    fields = ('image',) 
+    extra = 1
+    fields = ('image',)
 
 class AdvertisementAdmin(admin.ModelAdmin):
-    list_display = ('title', 'description', 'created_at', 'likes_count', 'comments_count', 'shares_count')
+    form = AdvertisementForm  # 🔥 On lie le formulaire personnalisé ici
+    list_display = (
+        'title', 'description', 'created_at',
+        'likes_count', 'comments_count', 'shares_count' ,'visits_count'
+    )
     search_fields = ('title', 'description')
-    list_filter = ('created_at',)
+    list_filter = (
+        'created_at', 'target_sex',
+        'target_communes', 'target_cities'
+    )
 
-    inlines = [PhotoAdsInline]  # Ajoute les images associées à la publicité dans l'admin
+    # 🔥 Affichage des champs dans l’admin
+    fieldsets = (
+        (None, {
+            'fields': (
+                'title', 'description', 'media_type', 'media_file', 'url'
+            )
+        }),
+        ('Ciblage', {
+            'fields': (
+                'target_all_users', 'target_sex', 'target_communes',
+                'target_cities', 'target_keywords',
+                'target_address_keywords',  # ✅ Mot-clés d'adresse
+                ('target_latitude', 'target_longitude', 'target_radius_km'),  # ✅ Zone géographique
+                'max_target_users',
+            )
+        }),
+    )
+
+    inlines = [PhotoAdsInline]
 
     def save_model(self, request, obj, form, change):
         super().save_model(request, obj, form, change)
-        obj.shares_count = obj.shares_count  # Met à jour le compteur de partages si nécessaire
-        obj.save()
 
-# Enregistrer le modèle Advertisement avec son admin personnalisé
 admin.site.register(Advertisement, AdvertisementAdmin)
 
 class PhotoAdsAdmin(admin.ModelAdmin):
@@ -786,8 +834,63 @@ class PhotoAdsAdmin(admin.ModelAdmin):
     search_fields = ('ads__title',)
     list_filter = ('ads',)
 
-# Enregistrer le modèle des images associées aux publicités
 admin.site.register(PhotoAds, PhotoAdsAdmin)
+
+# class PhotoAdsInline(admin.TabularInline):
+#     model = PhotoAds
+#     extra = 1
+#     fields = ('image',)
+
+# class AdvertisementAdmin(admin.ModelAdmin):
+#     form = AdvertisementForm  # 🔥 On lie le formulaire personnalisé ici
+#     list_display = ('title', 'description', 'created_at', 'likes_count', 'comments_count', 'shares_count')
+#     search_fields = ('title', 'description')
+#     list_filter = ('created_at', 'target_sex', 'target_communes', 'target_cities')
+
+#     inlines = [PhotoAdsInline]
+
+#     def save_model(self, request, obj, form, change):
+#         # Les champs target_communes et target_cities sont déjà gérés dans le form.save()
+#         super().save_model(request, obj, form, change)
+
+# admin.site.register(Advertisement, AdvertisementAdmin)
+
+# class PhotoAdsAdmin(admin.ModelAdmin):
+#     list_display = ('ads', 'image', 'uploaded_at')
+#     search_fields = ('ads__title',)
+#     list_filter = ('ads',)
+
+# admin.site.register(PhotoAds, PhotoAdsAdmin)
+
+# from .models import Advertisement, PhotoAds
+
+# class PhotoAdsInline(admin.TabularInline):  # Permet d'afficher les images associées dans la page d'une publicité
+#     model = PhotoAds
+#     extra = 1  # Nombre de champs vides supplémentaires pour l'ajout de nouvelles images
+#     fields = ('image',) 
+
+# class AdvertisementAdmin(admin.ModelAdmin):
+#     list_display = ('title', 'description', 'created_at', 'likes_count', 'comments_count', 'shares_count')
+#     search_fields = ('title', 'description')
+#     list_filter = ('created_at',)
+
+#     inlines = [PhotoAdsInline]  # Ajoute les images associées à la publicité dans l'admin
+
+#     def save_model(self, request, obj, form, change):
+#         super().save_model(request, obj, form, change)
+#         obj.shares_count = obj.shares_count  # Met à jour le compteur de partages si nécessaire
+#         obj.save()
+
+# # Enregistrer le modèle Advertisement avec son admin personnalisé
+# admin.site.register(Advertisement, AdvertisementAdmin)
+
+# class PhotoAdsAdmin(admin.ModelAdmin):
+#     list_display = ('ads', 'image', 'uploaded_at')
+#     search_fields = ('ads__title',)
+#     list_filter = ('ads',)
+
+# # Enregistrer le modèle des images associées aux publicités
+# admin.site.register(PhotoAds, PhotoAdsAdmin)
 
 
 # Enregistrer le modèle Comment
@@ -869,3 +972,5 @@ class SpotPubStoreAdmin(admin.ModelAdmin):
     def has_add_permission(self, request):
         # Empêche l'ajout manuel depuis l'admin, car le lien est OneToOne avec Store
         return False
+
+

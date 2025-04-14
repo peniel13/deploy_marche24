@@ -3831,7 +3831,7 @@ def interact_with_ad(request, ad_id, interaction_type):
             points = 2
         elif interaction_type == "share":
             ad.shares_count += 1
-            points = 5
+            points = 3
         else:
             return JsonResponse({"message": "Interaction non valide"}, status=400)
 
@@ -3849,7 +3849,7 @@ def interact_with_ad(request, ad_id, interaction_type):
 
 def reward_ad_interaction(user, ad, interaction_type):
     """Ajoute des points en fonction de l'interaction avec la publicité."""
-    points_mapping = {'like': 1, 'comment': 2, 'share': 5}
+    points_mapping = {'like': 1, 'comment': 2, 'share': 3}
     points = points_mapping.get(interaction_type, 0)
 
     if points > 0:
@@ -3873,69 +3873,162 @@ from .models import Advertisement, UserPoints, AdInteraction
 from .forms import AdInteractionForm
 from django.utils.timezone import now
 
+from django.shortcuts import render, redirect
+from django.core.paginator import Paginator, PageNotAnInteger, EmptyPage
+from django.db import transaction
+from django.db.models import Q
+from .models import Advertisement, PopUpAdvertisement, AdInteraction, UserPoints
+from .forms import AdInteractionForm
+from django.shortcuts import render, redirect
+from django.core.paginator import Paginator, PageNotAnInteger, EmptyPage
+from .models import Advertisement, AdInteraction, PopUpAdvertisement, UserPoints
+from .forms import AdInteractionForm
+from django.db.models import Q
+import random
+from django.db import transaction
+from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
+from django.core.cache import cache
+from django.shortcuts import render, redirect, get_object_or_404
+from django.db import transaction
+from django.contrib import messages
+
+from .models import Advertisement, PopUpAdvertisement, AdInteraction, UserLocation, UserPoints
+from .forms import AdInteractionForm
 
 def advertisement_list(request):
-    # Récupère toutes les publicités
-    ads = Advertisement.objects.all().order_by('-created_at')  # Trie les publicités par date de création décroissante
-    
-    # Récupérer la dernière publicité active pour affichage dans le modal
     ad_popup = PopUpAdvertisement.objects.filter(is_active=True).first()
-    # Vérifie si l'utilisateur est authentifié
-    if request.user.is_authenticated:
-        # Récupérer les points de l'utilisateur pour l'affichage dans la vue (optionnel)
-        user_points = UserPoints.objects.filter(user=request.user).first()
-        if not user_points:
-            user_points = UserPoints.objects.create(user=request.user, points=0)
 
-        # Vérifier si l'utilisateur a liké chaque publicité
+    # ⚡️ Utilisateur non authentifié : cache la liste des pubs visibles par tous
+    if not request.user.is_authenticated:
+        ads = cache.get('public_ads')
+        if ads:
+            print("✅ Cache utilisé pour les publicités publiques.")
+        else:
+            print("⏳ Cache manquant. Génération de la liste des publicités publiques.")
+            ads = list(Advertisement.objects.filter(target_all_users=True).order_by('-created_at'))
+            cache.set('public_ads', ads, 60 * 10)  # Cache pendant 10 minutes
+    else:
+        ads = Advertisement.objects.all().order_by('-created_at')
+
+    if request.user.is_authenticated:
+        user = request.user
+        user_points = UserPoints.objects.filter(user=user).first()
+        if not user_points:
+            user_points = UserPoints.objects.create(user=user, points=0)
+
+        user_sex = getattr(user, 'sex', None)
+        user_commune = (getattr(user, 'commune', '') or '').lower()
+        user_city = (getattr(user, 'city', '') or '').lower()
+        user_address = (getattr(user, 'address', '') or '').lower().split()
+        user_keywords = (getattr(user, 'interests', '') or '').lower().split(',')
+
+        user_location = UserLocation.objects.filter(user=user).first()
+        user_lat = float(user_location.latitude) if user_location and user_location.latitude else None
+        user_lon = float(user_location.longitude) if user_location and user_location.longitude else None
+
+        filtered_ads = []
+
         for ad in ads:
+            show_to_user = False
+
+            if ad.target_all_users:
+                show_to_user = True
+            else:
+                match_count = 0
+                total_conditions = 0
+
+                if ad.target_sex:
+                    total_conditions += 1
+                    if ad.target_sex == user_sex:
+                        match_count += 1
+
+                if ad.target_communes:
+                    total_conditions += 1
+                    ad_communes = [c.lower() for c in ad.target_communes]
+                    if user_commune in ad_communes:
+                        match_count += 1
+
+                if ad.target_cities:
+                    total_conditions += 1
+                    ad_cities = [c.lower() for c in ad.target_cities]
+                    if user_city in ad_cities:
+                        match_count += 1
+
+                if ad.target_keywords:
+                    total_conditions += 1
+                    ad_keywords = [k.strip().lower() for k in ad.target_keywords.split(',')]
+                    if any(k in user_keywords for k in ad_keywords):
+                        match_count += 1
+
+                if ad.target_address_keywords:
+                    total_conditions += 1
+                    ad_address_keywords = [k.strip().lower() for k in ad.target_address_keywords.split(',')]
+                    if any(k in user_address for k in ad_address_keywords):
+                        match_count += 1
+
+                if ad.target_latitude and ad.target_longitude and ad.target_radius_km and user_lat and user_lon:
+                    total_conditions += 1
+                    distance = ((user_lat - float(ad.target_latitude))**2 + (user_lon - float(ad.target_longitude))**2) ** 0.5 * 111
+                    if distance <= float(ad.target_radius_km):
+                        match_count += 1
+
+                if total_conditions > 0 and match_count == total_conditions:
+                    show_to_user = True
+
+            if show_to_user:
+                if ad.max_target_users:
+                    with transaction.atomic():
+                        ad = Advertisement.objects.select_for_update().get(id=ad.id)
+                        if ad.targeted_users.count() >= ad.max_target_users:
+                            show_to_user = False
+                        elif not ad.targeted_users.filter(id=user.id).exists():
+                            ad.targeted_users.add(user)
+                elif not ad.targeted_users.filter(id=user.id).exists():
+                    ad.targeted_users.add(user)
+
             ad.user_has_liked = AdInteraction.objects.filter(
-                user=request.user, 
-                ad=ad, 
+                user=user,
+                ad=ad,
                 interaction_type='like'
             ).exists()
+
+            if show_to_user:
+                filtered_ads.append(ad)
+
+        ads = filtered_ads
+
     else:
-        # Si l'utilisateur n'est pas authentifié, on donne 0 points
         user_points = None
         for ad in ads:
             ad.user_has_liked = False
+        ads = [ad for ad in ads if ad.target_all_users]
 
-    # Gérer les interactions
     if request.method == 'POST':
         form = AdInteractionForm(request.POST)
         if form.is_valid():
             ad = form.cleaned_data['ad']
             interaction_type = form.cleaned_data['interaction_type']
-            
-            # Vérifier si l'utilisateur a déjà effectué cette interaction
+
             if request.user.is_authenticated and not AdInteraction.objects.filter(user=request.user, ad=ad, interaction_type=interaction_type).exists():
-                # Créer l'interaction
                 AdInteraction.objects.create(
                     user=request.user,
                     ad=ad,
                     interaction_type=interaction_type
                 )
-                
-                # Ajouter des points pour l'utilisateur
-                points_to_add = 0
-                if interaction_type == 'like':
-                    points_to_add = 1
-                elif interaction_type == 'comment':
-                    points_to_add = 2
-                elif interaction_type == 'share':
-                    points_to_add = 5
 
-                # Ajouter les points à l'utilisateur si authentifié
-                if request.user.is_authenticated:
-                    user_points.add_ad_points(points_to_add)
-                
-                # Rediriger pour éviter la soumission multiple
+                points_to_add = {
+                    'like': 1,
+                    'comment': 2,
+                    'share': 3
+                }.get(interaction_type, 0)
+
+                user_points.add_ad_points(points_to_add)
+
                 return redirect('advertisement_list')
-
     else:
         form = AdInteractionForm()
-    # Pagination : 6 publicités par page
-    paginator = Paginator(ads, 6)  # 6 publicités par page
+
+    paginator = Paginator(ads, 6)
     page = request.GET.get('page')
     try:
         ads = paginator.page(page)
@@ -3944,12 +4037,437 @@ def advertisement_list(request):
     except EmptyPage:
         ads = paginator.page(paginator.num_pages)
 
+    no_ads_message = ""
+    if not ads:
+        if request.user.is_authenticated:
+            no_ads_message = "Aucune publicité ne correspond à votre profil pour le moment."
+        else:
+            no_ads_message = "Aucune publicité disponible actuellement pour tous les utilisateurs."
+
     return render(request, 'core/advertisement_list.html', {
         'ads': ads,
         'form': form,
         'user_points': user_points,
-        'ad_popup': ad_popup
+        'ad_popup': ad_popup,
+        'no_ads_message': no_ads_message
     })
+
+# def advertisement_list(request):
+#     ad_popup = PopUpAdvertisement.objects.filter(is_active=True).first()
+#     ads = Advertisement.objects.all().order_by('-created_at')
+
+#     if request.user.is_authenticated:
+#         user = request.user
+#         user_points = UserPoints.objects.filter(user=user).first()
+#         if not user_points:
+#             user_points = UserPoints.objects.create(user=user, points=0)
+
+#         user_sex = getattr(user, 'sex', None)
+#         user_commune = (getattr(user, 'commune', '') or '').lower()
+#         user_city = (getattr(user, 'city', '') or '').lower()
+#         user_address = (getattr(user, 'address', '') or '').lower().split()
+#         user_keywords = (getattr(user, 'interests', '') or '').lower().split(',')
+
+#         user_location = UserLocation.objects.filter(user=user).first()
+#         user_lat = float(user_location.latitude) if user_location and user_location.latitude else None
+#         user_lon = float(user_location.longitude) if user_location and user_location.longitude else None
+
+#         filtered_ads = []
+
+#         for ad in ads:
+#             show_to_user = False
+
+#             if ad.target_all_users:
+#                 show_to_user = True
+#             else:
+#                 match_count = 0
+#                 total_conditions = 0
+
+#                 # Sexe ciblé
+#                 if ad.target_sex:
+#                     total_conditions += 1
+#                     if ad.target_sex == user_sex:
+#                         match_count += 1
+
+#                 # Commune ciblée
+#                 if ad.target_communes:
+#                     total_conditions += 1
+#                     ad_communes = [c.lower() for c in ad.target_communes]
+#                     if user_commune in ad_communes:
+#                         match_count += 1
+
+#                 # Ville ciblée
+#                 if ad.target_cities:
+#                     total_conditions += 1
+#                     ad_cities = [c.lower() for c in ad.target_cities]
+#                     if user_city in ad_cities:
+#                         match_count += 1
+
+#                 # Mots-clés ciblés
+#                 if ad.target_keywords:
+#                     total_conditions += 1
+#                     ad_keywords = [k.strip().lower() for k in ad.target_keywords.split(',')]
+#                     if any(k in user_keywords for k in ad_keywords):
+#                         match_count += 1
+
+#                 # Adresse ciblée (sous forme de mots-clés dans une phrase)
+#                 if ad.target_address_keywords:
+#                     total_conditions += 1
+#                     ad_address_keywords = [k.strip().lower() for k in ad.target_address_keywords.split(',')]
+#                     if any(k in user_address for k in ad_address_keywords):
+#                         match_count += 1
+
+#                 # Ciblage géographique par distance
+#                 if ad.target_latitude and ad.target_longitude and ad.target_radius_km and user_lat and user_lon:
+#                     total_conditions += 1
+#                     distance = ((user_lat - float(ad.target_latitude))**2 + (user_lon - float(ad.target_longitude))**2) ** 0.5 * 111  # approx conversion deg -> km
+#                     if distance <= float(ad.target_radius_km):
+#                         match_count += 1
+
+#                 if total_conditions > 0 and match_count == total_conditions:
+#                     show_to_user = True
+
+#             if show_to_user:
+#                 if ad.max_target_users:
+#                     with transaction.atomic():
+#                         ad = Advertisement.objects.select_for_update().get(id=ad.id)
+#                         if ad.targeted_users.count() >= ad.max_target_users:
+#                             show_to_user = False
+#                         elif not ad.targeted_users.filter(id=user.id).exists():
+#                             ad.targeted_users.add(user)
+#                 elif not ad.targeted_users.filter(id=user.id).exists():
+#                     ad.targeted_users.add(user)
+
+#             ad.user_has_liked = AdInteraction.objects.filter(
+#                 user=user,
+#                 ad=ad,
+#                 interaction_type='like'
+#             ).exists()
+
+#             if show_to_user:
+#                 filtered_ads.append(ad)
+
+#         ads = filtered_ads
+
+#     else:
+#         user_points = None
+#         for ad in ads:
+#             ad.user_has_liked = False
+#         ads = [ad for ad in ads if ad.target_all_users]
+
+#     if request.method == 'POST':
+#         form = AdInteractionForm(request.POST)
+#         if form.is_valid():
+#             ad = form.cleaned_data['ad']
+#             interaction_type = form.cleaned_data['interaction_type']
+
+#             if request.user.is_authenticated and not AdInteraction.objects.filter(user=request.user, ad=ad, interaction_type=interaction_type).exists():
+#                 AdInteraction.objects.create(
+#                     user=request.user,
+#                     ad=ad,
+#                     interaction_type=interaction_type
+#                 )
+
+#                 points_to_add = {
+#                     'like': 1,
+#                     'comment': 2,
+#                     'share': 3
+#                 }.get(interaction_type, 0)
+
+#                 user_points.add_ad_points(points_to_add)
+
+#                 return redirect('advertisement_list')
+#     else:
+#         form = AdInteractionForm()
+
+#     paginator = Paginator(ads, 6)
+#     page = request.GET.get('page')
+#     try:
+#         ads = paginator.page(page)
+#     except PageNotAnInteger:
+#         ads = paginator.page(1)
+#     except EmptyPage:
+#         ads = paginator.page(paginator.num_pages)
+
+#     no_ads_message = ""
+#     if not ads:
+#         if request.user.is_authenticated:
+#             no_ads_message = "Aucune publicité ne correspond à votre profil pour le moment."
+#         else:
+#             no_ads_message = "Aucune publicité disponible actuellement pour tous les utilisateurs."
+
+#     return render(request, 'core/advertisement_list.html', {
+#         'ads': ads,
+#         'form': form,
+#         'user_points': user_points,
+#         'ad_popup': ad_popup,
+#         'no_ads_message': no_ads_message
+#     })
+
+# def advertisement_list(request):
+#     ad_popup = PopUpAdvertisement.objects.filter(is_active=True).first()
+#     ads = Advertisement.objects.all().order_by('-created_at')
+
+#     if request.user.is_authenticated:
+#         user = request.user
+#         user_points = UserPoints.objects.filter(user=user).first()
+#         if not user_points:
+#             user_points = UserPoints.objects.create(user=user, points=0)
+
+#         user_sex = getattr(user, 'sex', None)
+#         user_commune = (getattr(user, 'commune', '') or '').lower()
+#         user_city = (getattr(user, 'city', '') or '').lower()
+#         user_keywords = (getattr(user, 'interests', '') or '').lower().split(',')
+
+#         filtered_ads = []
+
+#         for ad in ads:
+#             show_to_user = False
+
+#             if ad.target_all_users:
+#                 show_to_user = True
+#             else:
+#                 match_count = 0
+#                 total_conditions = 0
+
+#                 # Sexe ciblé
+#                 if ad.target_sex:
+#                     total_conditions += 1
+#                     if ad.target_sex == user_sex:
+#                         match_count += 1
+
+#                 # Commune ciblée
+#                 if ad.target_communes:
+#                     total_conditions += 1
+#                     ad_communes = [c.lower() for c in ad.target_communes]
+#                     if user_commune in ad_communes:
+#                         match_count += 1
+
+#                 # Ville ciblée
+#                 if ad.target_cities:
+#                     total_conditions += 1
+#                     ad_cities = [c.lower() for c in ad.target_cities]
+#                     if user_city in ad_cities:
+#                         match_count += 1
+
+#                 # Mots-clés ciblés
+#                 if ad.target_keywords:
+#                     total_conditions += 1
+#                     ad_keywords = [k.strip().lower() for k in ad.target_keywords.split(',')]
+#                     if any(k in user_keywords for k in ad_keywords):
+#                         match_count += 1
+
+#                 # Si toutes les conditions définies sont remplies, on autorise
+#                 if total_conditions > 0 and match_count == total_conditions:
+#                     show_to_user = True
+
+#             if show_to_user:
+#                 if ad.max_target_users:
+#                     with transaction.atomic():
+#                         ad = Advertisement.objects.select_for_update().get(id=ad.id)
+#                         if ad.targeted_users.count() >= ad.max_target_users:
+#                             show_to_user = False
+#                         elif not ad.targeted_users.filter(id=user.id).exists():
+#                             ad.targeted_users.add(user)
+#                 elif not ad.targeted_users.filter(id=user.id).exists():
+#                     ad.targeted_users.add(user)
+
+#             ad.user_has_liked = AdInteraction.objects.filter(
+#                 user=user,
+#                 ad=ad,
+#                 interaction_type='like'
+#             ).exists()
+
+#             if show_to_user:
+#                 filtered_ads.append(ad)
+
+#         ads = filtered_ads
+
+#     else:
+#         user_points = None
+#         for ad in ads:
+#             ad.user_has_liked = False
+#         ads = [ad for ad in ads if ad.target_all_users]
+
+#     if request.method == 'POST':
+#         form = AdInteractionForm(request.POST)
+#         if form.is_valid():
+#             ad = form.cleaned_data['ad']
+#             interaction_type = form.cleaned_data['interaction_type']
+
+#             if request.user.is_authenticated and not AdInteraction.objects.filter(user=request.user, ad=ad, interaction_type=interaction_type).exists():
+#                 AdInteraction.objects.create(
+#                     user=request.user,
+#                     ad=ad,
+#                     interaction_type=interaction_type
+#                 )
+
+#                 points_to_add = {
+#                     'like': 1,
+#                     'comment': 2,
+#                     'share': 5
+#                 }.get(interaction_type, 0)
+
+#                 user_points.add_ad_points(points_to_add)
+
+#                 return redirect('advertisement_list')
+#     else:
+#         form = AdInteractionForm()
+
+#     paginator = Paginator(ads, 6)
+#     page = request.GET.get('page')
+#     try:
+#         ads = paginator.page(page)
+#     except PageNotAnInteger:
+#         ads = paginator.page(1)
+#     except EmptyPage:
+#         ads = paginator.page(paginator.num_pages)
+
+#     no_ads_message = ""
+#     if not ads:
+#         if request.user.is_authenticated:
+#             no_ads_message = "Aucune publicité ne correspond à votre profil pour le moment."
+#         else:
+#             no_ads_message = "Aucune publicité disponible actuellement pour tous les utilisateurs."
+
+#     return render(request, 'core/advertisement_list.html', {
+#         'ads': ads,
+#         'form': form,
+#         'user_points': user_points,
+#         'ad_popup': ad_popup,
+#         'no_ads_message': no_ads_message
+#     })
+
+# def advertisement_list(request):
+#     ad_popup = PopUpAdvertisement.objects.filter(is_active=True).first()
+#     ads = Advertisement.objects.all().order_by('-created_at')
+
+#     if request.user.is_authenticated:
+#         user = request.user
+#         user_points = UserPoints.objects.filter(user=user).first()
+#         if not user_points:
+#             user_points = UserPoints.objects.create(user=user, points=0)
+
+#         user_sex = getattr(user, 'sex', None)
+#         user_commune = (getattr(user, 'commune', '') or '').lower()
+#         user_city = (getattr(user, 'city', '') or '').lower()
+#         user_keywords = (getattr(user, 'interests', '') or '').lower().split(',')
+
+#         filtered_ads = []
+
+#         for ad in ads:
+#             show_to_user = False
+
+#             if ad.target_all_users:
+#                 show_to_user = True
+#             else:
+#                 match_count = 0
+#                 total_conditions = 0
+
+#                 # Sexe ciblé
+#                 if ad.target_sex:
+#                     total_conditions += 1
+#                     if ad.target_sex == user_sex:
+#                         match_count += 1
+
+#                 # Commune ciblée
+#                 if ad.target_communes:
+#                     total_conditions += 1
+#                     ad_communes = [c.lower() for c in ad.target_communes]
+#                     if user_commune in ad_communes:
+#                         match_count += 1
+
+#                 # Ville ciblée
+#                 if ad.target_cities:
+#                     total_conditions += 1
+#                     ad_cities = [c.lower() for c in ad.target_cities]
+#                     if user_city in ad_cities:
+#                         match_count += 1
+
+#                 # Mots-clés ciblés
+#                 if ad.target_keywords:
+#                     total_conditions += 1
+#                     ad_keywords = [k.strip().lower() for k in ad.target_keywords.split(',')]
+#                     if any(k in user_keywords for k in ad_keywords):
+#                         match_count += 1
+
+#                 # Si au moins une condition est remplie (ou toutes si définies), on autorise
+#                 if total_conditions > 0 and match_count == total_conditions:
+#                     show_to_user = True
+
+#             if show_to_user:
+#                 # Respect du nombre max d'utilisateurs ciblés
+#                 if ad.max_target_users and ad.targeted_users.count() >= ad.max_target_users:
+#                     show_to_user = False
+#                 elif not ad.targeted_users.filter(id=user.id).exists():
+#                     ad.targeted_users.add(user)
+
+#             ad.user_has_liked = AdInteraction.objects.filter(
+#                 user=user,
+#                 ad=ad,
+#                 interaction_type='like'
+#             ).exists()
+
+#             if show_to_user:
+#                 filtered_ads.append(ad)
+
+#         ads = filtered_ads
+
+#     else:
+#         user_points = None
+#         for ad in ads:
+#             ad.user_has_liked = False
+#         ads = [ad for ad in ads if ad.target_all_users]
+
+#     if request.method == 'POST':
+#         form = AdInteractionForm(request.POST)
+#         if form.is_valid():
+#             ad = form.cleaned_data['ad']
+#             interaction_type = form.cleaned_data['interaction_type']
+
+#             if request.user.is_authenticated and not AdInteraction.objects.filter(user=request.user, ad=ad, interaction_type=interaction_type).exists():
+#                 AdInteraction.objects.create(
+#                     user=request.user,
+#                     ad=ad,
+#                     interaction_type=interaction_type
+#                 )
+
+#                 points_to_add = {
+#                     'like': 1,
+#                     'comment': 2,
+#                     'share': 5
+#                 }.get(interaction_type, 0)
+
+#                 user_points.add_ad_points(points_to_add)
+
+#                 return redirect('advertisement_list')
+#     else:
+#         form = AdInteractionForm()
+
+#     paginator = Paginator(ads, 6)
+#     page = request.GET.get('page')
+#     try:
+#         ads = paginator.page(page)
+#     except PageNotAnInteger:
+#         ads = paginator.page(1)
+#     except EmptyPage:
+#         ads = paginator.page(paginator.num_pages)
+
+#     no_ads_message = ""
+#     if not ads:
+#         if request.user.is_authenticated:
+#             no_ads_message = "Aucune publicité ne correspond à votre profil pour le moment."
+#         else:
+#             no_ads_message = "Aucune publicité disponible actuellement pour tous les utilisateurs."
+
+#     return render(request, 'core/advertisement_list.html', {
+#         'ads': ads,
+#         'form': form,
+#         'user_points': user_points,
+#         'ad_popup': ad_popup,
+#         'no_ads_message': no_ads_message
+#     })
+
 
 
 # def advertisement_list(request):
@@ -4034,6 +4552,92 @@ def advertisement_detail(request, slug):
         'ad_absolute_url': ad_absolute_url
     })
 
+
+# views.py
+from django.shortcuts import get_object_or_404, redirect
+from django.contrib.auth.decorators import login_required
+from .models import Advertisement, AdInteraction, UserPoints
+# views.py
+
+from django.contrib import messages  # Importation des messages
+from django.shortcuts import redirect, get_object_or_404
+from django.contrib import messages
+from .models import Advertisement, AdInteraction, UserPoints
+
+def visit_ad_url(request, slug):
+    ad = get_object_or_404(Advertisement, slug=slug)
+
+    # Incrémente le compteur de visites (visible publiquement)
+    ad.visits_count += 1
+    ad.save()
+
+    # S'il est connecté, on vérifie l'interaction
+    if request.user.is_authenticated:
+        already_visited = AdInteraction.objects.filter(
+            user=request.user,
+            ad=ad,
+            interaction_type='visit'
+        ).exists()
+
+        if already_visited:
+            messages.info(request, "Vous avez déjà gagné 2 points pour cette visite.")
+        else:
+            # Crée l'interaction
+            AdInteraction.objects.create(
+                user=request.user,
+                ad=ad,
+                interaction_type='visit'
+            )
+
+            # Ajoute les points
+            user_points, _ = UserPoints.objects.get_or_create(user=request.user)
+            user_points.points += 2
+            user_points.ad_points += 2
+            user_points.save()
+
+            messages.success(request, "Vous avez gagné 2 points pour avoir visité cette publicité !")
+    else:
+        messages.info(request, "Connecte-toi pour gagner des points en visitant les liens des publicités.")
+
+    return redirect(ad.url)
+
+# @login_required
+# def visit_ad_url(request, slug):
+#     ad = get_object_or_404(Advertisement, slug=slug)
+
+#     already_visited = AdInteraction.objects.filter(
+#         user=request.user,
+#         ad=ad,
+#         interaction_type='visit'
+#     ).exists()
+
+#     if already_visited:
+#         # Si l'utilisateur a déjà visité cette publicité
+#         messages.info(request, "Vous avez déjà gagné 2 points pour cette visite.")
+#     else:
+#         # Crée l'interaction pour la première visite
+#         AdInteraction.objects.create(
+#             user=request.user,
+#             ad=ad,
+#             interaction_type='visit'
+#         )
+
+#         # Ajoute les points
+#         user_points, _ = UserPoints.objects.get_or_create(user=request.user)
+#         user_points.points += 2
+#         user_points.ad_points += 2
+#         user_points.save()
+
+#         # Incrémente le compteur de visites
+#         ad.visits_count += 1
+#         ad.save()
+
+#         # Message de succès
+#         messages.success(request, "Vous avez gagné 2 points pour avoir visité cette publicité !")
+
+#     return redirect(ad.url)
+
+
 # def advertisement_detail(request, slug):
 #     ad = Advertisement.objects.get(slug=slug)
 #     ad_absolute_url = request.build_absolute_uri(ad.get_absolute_url())
@@ -4077,6 +4681,10 @@ from django.shortcuts import redirect
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
 from .models import Advertisement, Share, UserPoints
+from django.http import JsonResponse
+from .models import Advertisement, Share
+from .tasks import handle_share_task
+
 
 @login_required
 def record_share(request, slug):
@@ -4093,7 +4701,7 @@ def record_share(request, slug):
 
         # Ajoute 5 points à l'utilisateur
         user_points = UserPoints.objects.get(user=request.user)
-        user_points.points += 5
+        user_points.points += 3
         user_points.save()
 
         # Retourner une réponse JSON pour la mise à jour dynamique
@@ -4104,8 +4712,6 @@ def record_share(request, slug):
         })
 
     return JsonResponse({'status': 'error', 'message': 'Déjà partagé'})
-
-
 
 
 
@@ -4122,14 +4728,14 @@ def ad_share(request, ad_slug):
 
         # Ajouter les points pour le partage (5 points)
         user_points = UserPoints.objects.get(user=request.user)
-        user_points.points += 5
+        user_points.points += 3
         user_points.save()
 
         # Optionnel : Mettre à jour un compteur de partages dans l'objet Advertisement (si tu veux)
         ad.shares_count += 1
         ad.save()
 
-        messages.success(request, "Vous avez partagé cette publicité et gagné 5 points!")
+        messages.success(request, "Vous avez partagé cette publicité et gagné 3 points!")
 
     return redirect('core:advertisement_detail', slug=ad_slug)
 
@@ -4296,7 +4902,7 @@ def share_ad(request, ad_slug):
 
             # Ajouter des points à l'utilisateur
             user_points = user.userpoints
-            user_points.points += 5  # Ajouter 5 points pour le partage
+            user_points.points += 3  # Ajouter 5 points pour le partage
             user_points.save()
 
             # Incrémenter le compteur de partages de l'annonce
@@ -4389,6 +4995,16 @@ def user_dashboard(request):
     }
 
     return render(request, 'core/user_dashboard.html', context)
+
+from django.contrib.auth.decorators import user_passes_test
+from django.shortcuts import render
+from .utils import count_online_users
+
+@user_passes_test(lambda u: u.is_authenticated and u.is_staff, login_url='/')
+def statistiques_view(request):
+    online_users = count_online_users()
+    return render(request, 'core/statistiques.html', {'online_users': online_users})
+# views.py
 
 
 

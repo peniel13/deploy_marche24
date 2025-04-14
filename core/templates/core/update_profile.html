@@ -99,6 +99,44 @@
         </div>
 
       </div>
+      <!-- Sex -->
+      <div class="mb-4">
+        <label for="id_sex" class="block text-sm font-medium text-gray-700">Sexe</label>
+        {{ form.sex }}
+        {% if form.sex.errors %}
+          <div class="text-red-600 text-sm mt-1">{{ form.sex.errors }}</div>
+        {% endif %}
+      </div>
+      
+
+<!-- Commune -->
+<div>
+  <label for="id_commune" class="block text-sm font-medium text-gray-700">Commune</label>
+  {{ form.commune }}
+  {% if form.commune.errors %}
+    <div class="text-red-600 text-sm mt-1">{{ form.commune.errors }}</div>
+  {% endif %}
+</div>
+
+<!-- City -->
+<div>
+  <label for="id_city" class="block text-sm font-medium text-gray-700">Ville</label>
+  {{ form.city }}
+  {% if form.city.errors %}
+    <div class="text-red-600 text-sm mt-1">{{ form.city.errors }}</div>
+  {% endif %}
+</div>
+
+<!-- Interests -->
+<div>
+  <label for="id_interests" class="block text-sm font-medium text-gray-700">Vos preferences</label>
+  
+  <input id="id_interests" name="interests" type="text" value="{{ form.interests.value }}" placeholder="Ex: sport, mode, jeux vidéo"
+    class="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm">
+  {% if form.interests.errors %}
+    <div class="text-red-600 text-sm mt-1">{{ form.interests.errors }}</div>
+  {% endif %}
+</div>
 
       <div>
         <button type="submit" class="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-primary hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">

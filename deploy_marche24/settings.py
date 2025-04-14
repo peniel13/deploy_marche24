@@ -25,7 +25,7 @@ SECRET_KEY = 'django-insecure-3c64!blj_^b7h67=coe1r_o)7iy^^p%i9=sme6tj(q%1rpc_3)
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['13.245.117.70','127.0.0.1']
 
 
 # Application definition
@@ -37,11 +37,18 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'tailwind',
+    'theme',
+    "django_browser_reload",
     'core',
     'base',
     'simplemathcaptcha',
 ]
-
+TAILWIND_APP_NAME= 'theme'
+INTERNAL_IPS= [
+    "127.0.0.1"
+]
+NPM_BIN_PATH=r"C:\Program Files\nodejs\npm.cmd" 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
@@ -50,6 +57,9 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    "django_browser_reload.middleware.BrowserReloadMiddleware",
+    'core.middleware.ActiveUserMiddleware',
+    
 ]
 
 ROOT_URLCONF = 'deploy_marche24.urls'
@@ -136,7 +146,22 @@ AUTH_USER_MODEL = 'core.CustomUser'
 STRIPE_API_KEY_PUBLISHABLE = 'pk_test_51QSaN4FZEV2V9Kyd7zIt3uROGM03QcuRbVwn0YgI6ZvkNSaMrR8AEmtFB9tOLOhpHVockM8eMnXHQLffxCgMiusT00e6PPNriR'
 STRIPE_TEST_SECRET_KEY = 'sk_test_51QSaN4FZEV2V9KydzSnlUBZVOFrOBptatGv88hTJAgo0IDjFZlZb6Ld52RHdo0KMJyBePfhk3L9CVddisqF0EaQW00i76DOZrA'
 
-# Redéfinir le modèle utilisateur personnalisé
+# settings.py
 
-
-# Configuration Django Allauth
+CELERY_BROKER_URL = 'redis://localhost:6379/0'  # Redis comme broker
+CELERY_RESULT_BACKEND = 'redis://localhost:6379/0'  # Redis pour stocker les résultats
+CELERY_ACCEPT_CONTENT = ['json']
+CELERY_TASK_SERIALIZER = 'json'
+CELERY_TIMEZONE = 'UTC'
+SESSION_ENGINE = "django.contrib.sessions.backends.cache"
+SESSION_CACHE_ALIAS = "default"
+# 
+CACHES = {
+    "default": {
+        "BACKEND": "django_redis.cache.RedisCache",
+        "LOCATION": "redis://127.0.0.1:6379/1",  # adapte si ton Redis est ailleurs
+        "OPTIONS": {
+            "CLIENT_CLASS": "django_redis.client.DefaultClient",
+        }
+    }
+}
