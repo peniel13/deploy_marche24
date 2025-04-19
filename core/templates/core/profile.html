@@ -211,11 +211,12 @@
 <!-- Bouton de création de store en dehors de la section -->
 <div class="container mx-auto mt-8 text-center">
     <a href="{% url 'create_store' %}" class="inline-block px-6 py-3 text-white bg-blue-600 hover:bg-blue-800 rounded-md transition duration-300">
-        Ajouter un super marché (reserver au gerant de store)
+        Ajouter un store (reserver au gerant de store)
     </a>
 </div>
 <!-- Section pour afficher les stores sous forme de cartes animées -->
-<section class="mt-12 pb-12">
+<section class="mt-12 pb-12 px-4 sm:px-6 lg:px-12">
+    
     <h2 class="text-3xl font-bold text-center mb-8">Vos Stores</h2>
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
         {% for store in stores %}

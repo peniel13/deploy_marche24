@@ -808,7 +808,7 @@ class AdvertisementAdmin(admin.ModelAdmin):
     fieldsets = (
         (None, {
             'fields': (
-                'title', 'description', 'media_type', 'media_file', 'url'
+                'title', 'description', 'media_type', 'media_file', 'url','thumbnail_url',
             )
         }),
         ('Ciblage', {
@@ -973,4 +973,12 @@ class SpotPubStoreAdmin(admin.ModelAdmin):
         # Empêche l'ajout manuel depuis l'admin, car le lien est OneToOne avec Store
         return False
 
+from django.contrib import admin
+from .models import StoreVisit
 
+@admin.register(StoreVisit)
+class StoreVisitAdmin(admin.ModelAdmin):
+    list_display = ('store', 'user', 'ip_address', 'date', 'count')
+    list_filter = ('date', 'store')
+    search_fields = ('store__name', 'user__username', 'ip_address')
+    ordering = ('-date',)

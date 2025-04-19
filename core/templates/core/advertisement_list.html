@@ -1,5 +1,6 @@
 {% extends 'base.html' %}
-{% load static %}  {# Chargement des fichiers statiques si nécessaire #}
+{% load custom_filters %}
+{% load static %}
 
 {% block content %}
 {% if no_ads_message %}
@@ -8,166 +9,521 @@
 </div>
 {% endif %}
 
-    <div class="container mx-auto p-4">
-        <h1 class="text-3xl font-bold mb-6">Liste des Publicités</h1>
-        <p class="text-lg text-gray-700 mb-6">Aimez, commentez,partagez et visitez une publicité pour gagner jusqu’à <strong>8 points</strong> par publicité !</p>
+<div class="container mx-auto p-4">
+    <h1 class="text-3xl font-bold mb-6">Liste des Publicités 💵</h1>
+    <p class="text-lg text-gray-700 mb-6">
+        Aimez, commentez, partagez et visitez une publicité pour gagner jusqu’à <strong>7 points</strong> par publicité ! 
+    </p>
 
+    {% if user_points %}
+        <p>Points disponibles : {{ user_points.points }} points</p>
+    {% else %}
+        <p>Vous devez vous connecter pour accumuler des points.</p>
+        <a href="{% url 'signin' %}" class="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-700 mt-2 mb-4 inline-block">
+            Se connecter
+        </a>
+    {% endif %}
 
-        {% if user_points %}
-            <p>Points disponibles : {{ user_points.points }} points</p>
-        {% else %}
-            <p>Vous devez vous connecter pour accumuler des points.</p>
-            <a href="{% url 'signin' %}" class="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-700 mt-2 mb-4 inline-block">
-                Se connecter
-            </a>
-            
-        {% endif %}
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        {% for ad in ads %}
+        <div class="bg-white rounded-lg shadow-lg p-4 transform transition-transform hover:scale-105 hover:shadow-lg duration-300 mb-6">
+            <h2 class="text-xl font-semibold">{{ ad.title }}</h2>
+            <p class="text-gray-600">{{ ad.description|truncatewords:20 }}</p>
 
-        <!-- Affichage des publicités -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 ">
-            {% for ad in ads %}
-            <div class="bg-white rounded-lg shadow-lg p-4 transform transition-transform hover:scale-105 hover:shadow-lg duration-300 mb-6">
-                    <h2 class="text-xl font-semibold">{{ ad.title }}</h2>
-                    <p class="text-gray-600">{{ ad.description|truncatewords:20 }}</p>
-
-                    <!-- Affichage de l'image ou de la vidéo -->
-                    {% if ad.media_type == 'image' %}
-                        <img src="{{ ad.media_file.url }}" alt="{{ ad.title }}" class="w-full mt-4 rounded">
-                    {% elif ad.media_type == 'video' %}
-                        <video class="w-full mt-4 rounded" controls poster="{{ ad.thumbnail_url.url }}">
-                            <source src="{{ ad.media_file.url }}" type="video/mp4">
-                        </video>
-                    {% endif %}
-
-                    <!-- Interaction utilisateur (like, comment, share) -->
-                    <div class="flex items-center justify-between mt-4">
-                        {% if user.is_authenticated %}
-                            <!-- Like Icon -->
-                            <form action="{% url 'handle_like' ad.id %}" method="POST">
-                                {% csrf_token %}
-                                <button type="submit">
-                                    {% if ad.user_has_liked %}
-                                        <!-- Si l'utilisateur a liké, il peut "disliker" -->
-                                        <span class="text-red-500 text-2xl">❤️</span> <!-- Rouge pour like -->
-                                    {% else %}
-                                        <!-- Si l'utilisateur n'a pas liké, il peut "liker" -->
-                                        <span class="text-gray-500 text-2xl">🤍</span> <!-- Gris pour like -->
-                                    {% endif %}
-                                </button>
-                            </form>
-                            
-
-                            <!-- Comment Icon -->
-                            <a href="{% url 'ad_comments' ad.slug %}" class="mr-4 text-2xl text-blue-500">
-                                <span class="text-blue-500">💬</span>
-                            </a>
-
-                            {% comment %} <!-- Share Icon -->
-                            <button onclick="showSharePopup()" class="text-gray-600 hover:text-gray-800">
-                                <span class="text-2xl">🔗</span>
-                            </button> {% endcomment %}
-                        {% else %}
-                        <p class="mt-4 text-red-500 font-semibold">🔒 Connectez-vous pour interagir avec cette publicité.</p>
-                        <a href="{% url 'signin' %}" class="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-700 mt-2 inline-block">
-                            Se connecter
-                        </a>
-                        {% endif %}
-                    </div>
-
-                    <!-- Statistiques sur la publicité -->
-                    <div class="mt-4 flex justify-between items-center text-gray-500">
-                        <div>
-                            <p>{{ ad.likes_count }} Like(s)</p>
-                            <p>{{ ad.comments_count }} Commentaire(s)</p>
-                            <p>{{ ad.shares_count }} Partage(s)</p>
-                        </div>
-                        <a href="{% url 'advertisement_detail' ad.slug %}" class="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600">
-                            Voir Détails
-                        </a>
-                    </div>
-                </div>
-            {% empty %}
-                <p class="text-gray-500">Aucune publicité disponible pour tous.</p>
-            {% endfor %}
-        </div>
-
-        <!-- Pagination -->
-        {% if ads.has_other_pages %}
-<div class="mt-8">
-    <nav aria-label="Pagination des publicités" class="flex justify-center">
-        <ul class="flex space-x-4">
-
-            {% if ads.has_previous %}
-            <li>
-                <a href="?page=1#publicites" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
-                    &laquo; Première
-                </a>
-            </li>
-            <li>
-                <a href="?page={{ ads.previous_page_number }}#publicites" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
-                    <
-                </a>
-            </li>
+            {% if ad.media_type == 'image' %}
+                <img src="{{ ad.media_file.url }}" alt="{{ ad.title }}" class="w-full mt-4 rounded">
+            {% elif ad.media_type == 'video' %}
+                <video class="w-full mt-4 rounded" controls poster="{{ ad.thumbnail_url.url }}">
+                    <source src="{{ ad.media_file.url }}" type="video/mp4">
+                </video>
             {% endif %}
 
-            <!-- Page actuelle -->
-            <li>
-                <span class="px-4 py-2 bg-blue-600 text-white rounded-lg">
-                    {{ ads.number }}
-                </span>
-            </li>
-
-            {% if ads.has_next %}
-            <li>
-                <a href="?page={{ ads.next_page_number }}#publicites" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
-                   >
+            {% if ad.url %}
+                <a href="{% url 'visit_ad_url' ad.slug %}" class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-800 mt-4 inline-block">
+                    🌐 Visiter le lien de la pub 👁 Visites : {{ ad.visits_count }}
                 </a>
-            </li>
-            <li>
-                <a href="?page={{ ads.paginator.num_pages }}#publicites" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
-                    Dernière &raquo;
-                </a>
-            </li>
+                {% if not user.is_authenticated %}
+                    <p class="text-sm text-red-500 mt-2">Connecte-toi pour gagner des points en visitant les pubs.</p>
+                {% endif %}
             {% endif %}
 
-        </ul>
-    </nav>
-</div>
-{% endif %}
+            <div class="flex items-center justify-between mt-4">
+                {% if user.is_authenticated %}
+                    <form action="{% url 'handle_like' ad.id %}" method="POST">
+                        {% csrf_token %}
+                        <button type="submit">
+                            {% if ad.user_has_liked %}
+                                <span class="text-red-500 text-2xl">❤️</span>
+                            {% else %}
+                                <span class="text-gray-500 text-2xl">🤍</span>
+                            {% endif %}
+                        </button>
+                    </form>
 
-       
-      
+                    <a href="{% url 'ad_comments' ad.slug %}" class="mr-4 text-2xl text-blue-500">
+                        <span class="text-blue-500">💬</span>
+                    </a>
 
-
-    </div>
-    {% if ad_popup and ad_popup.is_active %}
-    <div id="popupAd" class="modal show d-block" tabindex="-1" style="background: rgba(0,0,0,0.5); position: fixed; top: 0; left: 0; width: 100%; height: 100%; display: flex; justify-content: center; align-items: center; z-index: 9999;">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content">
-                <!-- Bouton de fermeture positionné au-dessus de la vidéo -->
-                <button type="button" class="btn-close" onclick="closePopup()" style="border: none; background: none; font-size: 30px; color: #fff; position: absolute; top: 20px; right: 20px; z-index: 10000;">&times;</button>
-
-                <div class="modal-body text-center">
-                    {% if ad_popup.media_type == "image" %}
-                        <img src="{{ ad_popup.file.url }}" class="img-fluid" alt="Publicité">
+                    {% if ad.id not in user_shares %}
+                        <button onclick="openSharePopup({{ ad.id }})" class="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-700 mt-2">
+                            <i class="fa fa-share-alt"></i> Partager
+                        </button>
                     {% else %}
-                        <video autoplay controls class="img-fluid" style="max-width: 100%; max-height: 100vh;">
-                            <source src="{{ ad_popup.file.url }}" type="video/mp4">
-                        </video>
+                        <button class="px-4 py-2 bg-gray-400 text-white rounded-lg mt-2" disabled>
+                            <i class="fa fa-share-alt"></i> Déjà partagé
+                        </button>
                     {% endif %}
+                {% else %}
+                    <p class="text-red-500 mt-2">🔒 Connectez-vous pour interagir avec cette publicité.</p>
+                    <a href="{% url 'signin' %}" class="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-700 mt-2 inline-block">
+                        Se connecter
+                    </a>
+                {% endif %}
+            </div>
+
+            <!-- POPUP DE PARTAGE -->
+            <div id="share-popup-{{ ad.id }}" class="fixed inset-0 bg-gray-800 bg-opacity-50 flex items-center justify-center hidden z-50">
+                <div class="bg-white p-6 rounded-xl relative w-96">
+                    <button onclick="closeSharePopup({{ ad.id }})" class="absolute top-2 right-3 text-gray-600 text-2xl hover:text-gray-900">&times;</button>
+                    <h3 class="text-xl font-semibold text-center">Partager cette publicité</h3>
+                    <form method="POST" action="{% url 'record_share' ad.slug %}" id="share-form-{{ ad.id }}">
+                        {% csrf_token %}
+                        <input type="hidden" name="social_network" id="social-network-input-{{ ad.id }}">
+                        <div class="flex justify-center mt-6 space-x-4">
+                            <a href="#" onclick="recordShare(event, {{ ad.id }}, 'whatsapp')" data-url="{{ ad_absolute_urls|get_item:ad.id }}">
+                                <img src="{% static 'img/whatsap2.jpg' %}" class="w-10 h-10">
+                            </a>
+                            <a href="#" onclick="recordShare(event, {{ ad.id }}, 'facebook')" data-url="{{ ad_absolute_urls|get_item:ad.id }}">
+                                <img src="{% static 'img/fb2.png' %}" class="w-10 h-10">
+                            </a>                            
+                            
+                        </div>
+                    </form>
                 </div>
+            </div>
+
+            <div class="mt-4 flex justify-between items-center text-gray-500">
+                <div>
+                    <p>{{ ad.likes_count }} Like(s)</p>
+                    <p>{{ ad.comments_count }} Commentaire(s)</p>
+                    <p>{{ ad.shares_count }} Partage(s)</p>
+                </div>
+                <a href="{% url 'advertisement_detail' ad.slug %}" class="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600">
+                    Voir Détails
+                </a>
+            </div>
+        </div>
+        {% empty %}
+            <p class="text-gray-500">Aucune publicité disponible pour tous.</p>
+        {% endfor %}
+    </div>
+
+    {% if ads.has_other_pages %}
+    <div class="mt-8">
+        <nav aria-label="Pagination des publicités" class="flex justify-center">
+            <ul class="flex space-x-4">
+                {% if ads.has_previous %}
+                <li>
+                    <a href="?page=1#publicites" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">« Première</a>
+                </li>
+                <li>
+                    <a href="?page={{ ads.previous_page_number }}#publicites" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">&lt;</a>
+                </li>
+                {% endif %}
+                <li><span class="px-4 py-2 bg-blue-600 text-white rounded-lg">{{ ads.number }}</span></li>
+                {% if ads.has_next %}
+                <li>
+                    <a href="?page={{ ads.next_page_number }}#publicites" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">&gt;</a>
+                </li>
+                <li>
+                    <a href="?page={{ ads.paginator.num_pages }}#publicites" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">Dernière »</a>
+                </li>
+                {% endif %}
+            </ul>
+        </nav>
+    </div>
+    {% endif %}
+</div>
+<section id="favorite_stores" class="py-16 bg-gray-100">
+    <div class="max-w-6xl mx-auto text-center">
+        <h2 class="text-3xl font-semibold mb-8">Les stores Populaires</h2>
+        
+        <!-- Carrousel Glide.js -->
+        <div class="relative w-full glide-01">
+            <!-- Carousel wrapper -->
+            <div class="overflow-hidden" data-glide-el="track">
+                <ul class="relative w-full overflow-hidden p-0 whitespace-no-wrap flex flex-no-wrap [backface-visibility: hidden] [transform-style: preserve-3d] [touch-action: pan-Y] [will-change: transform]">
+                    {% if favorite_stores %}
+                        {% for store in favorite_stores %}
+                            <li class="min-w-[250px] md:w-[calc(33.33%-24px)]">
+                                <div class="bg-white p-6 rounded-lg shadow-lg hover:shadow-2xl mb-6">
+                                    {% if store.thumbnail %}
+                                        <img class="w-full h-48 object-cover rounded-t-lg" src="{{ store.thumbnail.url }}" alt="{{ store.name }}">
+                                    {% else %}
+                                        <img class="w-full h-48 object-cover rounded-t-lg" src="{% static 'img/default-store.jpg' %}" alt="Image par défaut du Store">
+                                    {% endif %}
+                                    
+                                    <h3 class="text-xl font-semibold text-gray-800 mt-4">{{ store.name }}</h3>
+                                    <p class="text-lg text-gray-600">{{ store.commune }}</p>
+                                    
+                                    <div class="flex items-center mt-2">
+                                        <p class="text-yellow-500">
+                                            {% for i in range_10 %}
+                                                {% if i <= store.average_rating %}
+                                                    &#9733;
+                                                {% else %}
+                                                    &#9734;
+                                                {% endif %}
+                                            {% endfor %}
+                                        </p>
+                                        <span class="text-sm text-gray-500 ml-2">Note moyenne : {{ store.average_rating|default:"0" }}/10</span>
+                                    </div>
+
+                                    <div class="mt-4">
+                                        <a href="{% url 'store_detail' store.slug %}" class="inline-block px-6 py-3 text-white bg-blue-600 hover:bg-blue-800 rounded-md font-semibold transition duration-300">
+                                            Voir plus
+                                        </a>
+                                    </div>
+                                </div>
+                            </li>
+                        {% endfor %}
+                    {% else %}
+                        <p class="text-center text-lg text-gray-600">Aucune boutique favorite trouvée.</p>
+                    {% endif %}
+                </ul>
+            </div>
+            
+            <!-- Carousel controls -->
+            <div class="absolute left-0 flex items-center justify-between w-full h-0 px-4 top-1/2" data-glide-el="controls">
+                <button class="inline-flex items-center justify-center w-8 h-8 transition duration-300 border rounded-full lg:w-12 lg:h-12 text-slate-700 border-slate-700 hover:text-slate-900 hover:border-slate-900 focus-visible:outline-none bg-white/20" data-glide-dir="<" aria-label="previous slide">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M6.75 15.75L3 12m0 0l3.75-3.75M3 12h18"/>
+                    </svg>
+                </button>
+                <button class="inline-flex items-center justify-center w-8 h-8 transition duration-300 border rounded-full lg:w-12 lg:h-12 text-slate-700 border-slate-700 hover:text-slate-900 hover:border-slate-900 focus-visible:outline-none bg-white/20" data-glide-dir=">" aria-label="next slide">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M17.25 8.25L21 12m0 0l-3.75 3.75M21 12H3"/>
+                    </svg>
+                </button>
             </div>
         </div>
     </div>
-    <script>
-        function closePopup() {
-            document.getElementById("popupAd").style.display = "none";
-        }
-    </script>
+</section>
+
+<!-- Glide.js Script -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Glide.js/3.0.2/glide.js"></script>
+
+<script>
+    var glide01 = new Glide('.glide-01', {
+        type: 'carousel',
+        focusAt: 'center',
+        perView: 3,
+        autoplay: 3000,
+        animationDuration: 700,
+        gap: 24,
+        classes: {
+            activeNav: '[&>*]:bg-slate-700',
+        },
+        breakpoints: {
+            1024: {
+                perView: 2
+            },
+            640: {
+                perView: 1
+            }
+        },
+    });
+
+    glide01.mount();
+</script>
+{% if ad_popup and ad_popup.is_active %}
+<div id="popupAd" class="modal show d-block" tabindex="-1" style="background: rgba(0,0,0,0.5); position: fixed; top: 0; left: 0; width: 100%; height: 100%; display: flex; justify-content: center; align-items: center; z-index: 9999;">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <button type="button" class="btn-close" onclick="closePopup()" style="border: none; background: none; font-size: 30px; color: #fff; position: absolute; top: 20px; right: 20px;">&times;</button>
+            <div class="modal-body text-center">
+                {% if ad_popup.media_type == "image" %}
+                    <img src="{{ ad_popup.file.url }}" class="img-fluid" alt="Publicité">
+                {% else %}
+                    <video autoplay controls class="img-fluid" style="max-width: 100%; max-height: 100vh;">
+                        <source src="{{ ad_popup.file.url }}" type="video/mp4">
+                    </video>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
 {% endif %}
 
+<script>
+    function closePopup() {
+        const popup = document.getElementById("popupAd");
+    
+        // Stopper la vidéo s'il y en a une
+        const video = popup.querySelector("video");
+        if (video) {
+            video.pause();
+            video.currentTime = 0; // optionnel : remet la vidéo au début
+        }
+    
+        // Cacher le popup
+        popup.style.display = "none";
+    }
+    function openSharePopup(adId) {
+        document.getElementById(`share-popup-${adId}`).classList.remove('hidden');
+    }
+    function closeSharePopup(adId) {
+        document.getElementById(`share-popup-${adId}`).classList.add('hidden');
+    }
+    function recordShare(event, adId, network) {
+        event.preventDefault();
+    
+        const form = document.getElementById(`share-form-${adId}`);
+        document.getElementById(`social-network-input-${adId}`).value = network;
+    
+        // ✅ Récupération de l'URL de l'annonce à partir du data-url
+        const adUrl = event.currentTarget.getAttribute('data-url');
+    
+        const url = form.action;
+        const data = new FormData(form);
+    
+        const shareLinks = {
+            'facebook': `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(adUrl)}`,
+            'whatsapp': `https://api.whatsapp.com/send?text=${encodeURIComponent(adUrl)}`,
+        };
+    
+        // ✅ Ouverture de la fenêtre de partage
+        window.open(shareLinks[network], '_blank');
+    
+        // ✅ Requête POST pour enregistrer le partage
+        fetch(url, {
+            method: 'POST',
+            body: data
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.status === 'success') {
+                alert(`Merci ! Vous avez gagné ${data.points} points.`);
+                closeSharePopup(adId);
+                location.reload();
+            }
+        });
+    }
+    
+</script>
 {% endblock %}
-   
+
+{% comment %} {% extends 'base.html' %}
+{% load custom_tags %}
+
+{% load static %}
+
+{% block content %}
+{% if no_ads_message %}
+<div class="alert alert-warning text-center mt-4">
+  {{ no_ads_message }}
+</div>
+{% endif %}
+
+<div class="container mx-auto p-4">
+    <h1 class="text-3xl font-bold mb-6">Liste des Publicités</h1>
+    <p class="text-lg text-gray-700 mb-6">
+        Aimez, commentez, partagez et visitez une publicité pour gagner jusqu’à <strong>8 points</strong> par publicité !
+    </p>
+
+    {% if user_points %}
+        <p>Points disponibles : {{ user_points.points }} points</p>
+    {% else %}
+        <p>Vous devez vous connecter pour accumuler des points.</p>
+        <a href="{% url 'signin' %}" class="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-700 mt-2 mb-4 inline-block">
+            Se connecter
+        </a>
+    {% endif %}
+
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        {% for ad in ads %}
+        <div class="bg-white rounded-lg shadow-lg p-4 transform transition-transform hover:scale-105 hover:shadow-lg duration-300 mb-6">
+            <h2 class="text-xl font-semibold">{{ ad.title }}</h2>
+            <p class="text-gray-600">{{ ad.description|truncatewords:20 }}</p>
+
+            {% if ad.media_type == 'image' %}
+                <img src="{{ ad.media_file.url }}" alt="{{ ad.title }}" class="w-full mt-4 rounded">
+            {% elif ad.media_type == 'video' %}
+                <video class="w-full mt-4 rounded" controls poster="{{ ad.thumbnail_url.url }}">
+                    <source src="{{ ad.media_file.url }}" type="video/mp4">
+                </video>
+            {% endif %}
+
+            {% if ad.url %}
+                <a href="{% url 'visit_ad_url' ad.slug %}" class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-800 mt-4 inline-block">
+                    🌐 Visiter le lien de la pub 👁 Visites : {{ ad.visits_count }}
+                </a>
+                {% if not user.is_authenticated %}
+                    <p class="text-sm text-red-500 mt-2">Connecte-toi pour gagner des points en visitant les pubs.</p>
+                {% endif %}
+            {% endif %}
+
+            <div class="flex items-center justify-between mt-4">
+                {% if user.is_authenticated %}
+                    <form action="{% url 'handle_like' ad.id %}" method="POST">
+                        {% csrf_token %}
+                        <button type="submit">
+                            {% if ad.user_has_liked %}
+                                <span class="text-red-500 text-2xl">❤️</span>
+                            {% else %}
+                                <span class="text-gray-500 text-2xl">🤍</span>
+                            {% endif %}
+                        </button>
+                    </form>
+
+                    <a href="{% url 'ad_comments' ad.slug %}" class="mr-4 text-2xl text-blue-500">
+                        <span class="text-blue-500">💬</span>
+                    </a>
+
+                    {% if ad.id not in user_shares %}
+                        <button onclick="openSharePopup({{ ad.id }})" class="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-700 mt-2">
+                            <i class="fa fa-share-alt"></i> Partager
+                        </button>
+                    {% else %}
+                        <button class="px-4 py-2 bg-gray-400 text-white rounded-lg mt-2" disabled>
+                            <i class="fa fa-share-alt"></i> Déjà partagé
+                        </button>
+                    {% endif %}
+                {% else %}
+                    <p class="text-red-500 mt-2">Connectez-vous pour interagir avec cette publicité.</p>
+                    <a href="{% url 'signin' %}" class="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-700 mt-2 inline-block">
+                        Se connecter
+                    </a>
+                {% endif %}
+            </div>
+
+            <div id="share-popup-{{ ad.id }}" class="fixed inset-0 bg-gray-800 bg-opacity-50 flex items-center justify-center hidden z-50">
+                <div class="bg-white p-6 rounded-xl relative w-96">
+                    <button onclick="closeSharePopup({{ ad.id }})" class="absolute top-2 right-3 text-gray-600 text-2xl hover:text-gray-900">&times;</button>
+                    <h3 class="text-xl font-semibold text-center">Partager cette publicité</h3>
+                    <form method="POST" action="{% url 'record_share' ad.slug %}" id="share-form-{{ ad.id }}">
+                        {% csrf_token %}
+                        <input type="hidden" name="social_network" id="social-network-input-{{ ad.id }}">
+                        <div class="flex justify-center mt-6 space-x-4">
+                            <a href="https://api.whatsapp.com/send?text={{ ad_absolute_urls|get_item:ad.id }}"
+                               target="_blank" onclick="recordShare(event, {{ ad.id }}, 'whatsapp')">
+                                <img src="{% static 'img/whatsap2.jpg' %}" class="w-10 h-10">
+                            </a>
+                            <a href="https://www.facebook.com/sharer/sharer.php?u={{ ad_absolute_urls|get_item:ad.id }}"
+                               target="_blank" onclick="recordShare(event, {{ ad.id }}, 'facebook')">
+                                <img src="{% static 'img/fb2.png' %}" class="w-10 h-10">
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <div class="mt-4 flex justify-between items-center text-gray-500">
+                <div>
+                    <p>{{ ad.likes_count }} Like(s)</p>
+                    <p>{{ ad.comments_count }} Commentaire(s)</p>
+                    <p>{{ ad.shares_count }} Partage(s)</p>
+                </div>
+                <a href="{% url 'advertisement_detail' ad.slug %}" class="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600">
+                    Voir Détails
+                </a>
+            </div>
+        </div>
+        {% empty %}
+            <p class="text-gray-500">Aucune publicité disponible pour tous.</p>
+        {% endfor %}
+    </div>
+
+    {% if ads.has_other_pages %}
+    <div class="mt-8">
+        <nav aria-label="Pagination des publicités" class="flex justify-center">
+            <ul class="flex space-x-4">
+                {% if ads.has_previous %}
+                <li>
+                    <a href="?page=1#publicites" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">« Première</a>
+                </li>
+                <li>
+                    <a href="?page={{ ads.previous_page_number }}#publicites" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">&lt;</a>
+                </li>
+                {% endif %}
+                <li><span class="px-4 py-2 bg-blue-600 text-white rounded-lg">{{ ads.number }}</span></li>
+                {% if ads.has_next %}
+                <li>
+                    <a href="?page={{ ads.next_page_number }}#publicites" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">&gt;</a>
+                </li>
+                <li>
+                    <a href="?page={{ ads.paginator.num_pages }}#publicites" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">Dernière »</a>
+                </li>
+                {% endif %}
+            </ul>
+        </nav>
+    </div>
+    {% endif %}
+</div>
+
+{% if ad_popup and ad_popup.is_active %}
+<div id="popupAd" class="modal show d-block" tabindex="-1" style="background: rgba(0,0,0,0.5); position: fixed; top: 0; left: 0; width: 100%; height: 100%; display: flex; justify-content: center; align-items: center; z-index: 9999;">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <button type="button" class="btn-close" onclick="closePopup()" style="border: none; background: none; font-size: 30px; color: #fff; position: absolute; top: 20px; right: 20px;">&times;</button>
+            <div class="modal-body text-center">
+                {% if ad_popup.media_type == "image" %}
+                    <img src="{{ ad_popup.file.url }}" class="img-fluid" alt="Publicité">
+                {% else %}
+                    <video autoplay controls class="img-fluid" style="max-width: 100%; max-height: 100vh;">
+                        <source src="{{ ad_popup.file.url }}" type="video/mp4">
+                    </video>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<script>
+    function closePopup() {
+        document.getElementById("popupAd").style.display = "none";
+    }
+    function openSharePopup(adId) {
+        document.getElementById(`share-popup-${adId}`).classList.remove('hidden');
+    }
+    function closeSharePopup(adId) {
+        document.getElementById(`share-popup-${adId}`).classList.add('hidden');
+    }
+    function recordShare(event, adId, network) {
+        event.preventDefault();
+        const form = document.getElementById(`share-form-${adId}`);
+        document.getElementById(`social-network-input-${adId}`).value = network;
+
+        const url = form.action;
+        const data = new FormData(form);
+
+        const shareLinks = {
+            'facebook': `https://www.facebook.com/sharer/sharer.php?u=${window.location.origin}/ads/${adId}/`,
+            'twitter': `https://twitter.com/intent/tweet?url=${window.location.origin}/ads/${adId}/`,
+            'linkedin': `https://www.linkedin.com/sharing/share-offsite/?url=${window.location.origin}/ads/${adId}/`,
+            'whatsapp': `https://wa.me/?text=${window.location.origin}/ads/${adId}/`,
+        };
+
+        window.open(shareLinks[network], '_blank');
+
+        fetch(url, {
+            method: 'POST',
+            body: data
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.status === 'success') {
+                alert(`Merci ! Vous avez gagné ${data.points} points.`);
+                closeSharePopup(adId);
+                location.reload();
+            }
+        });
+    }
+</script>
+
+{% endblock %} {% endcomment %}
+
 
 
 

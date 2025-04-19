@@ -130,6 +130,7 @@ class Store(models.Model):
     categorystore = models.ForeignKey(CategoryStore, on_delete=models.SET_NULL, null=True, blank=True)
     apply_commission = models.BooleanField(default=True)
     favoritestore = models.BooleanField(default=False)
+    is_active = models.BooleanField(default=False)
     # Champs pour la géolocalisation
     latitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
     longitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
@@ -632,15 +633,19 @@ class UserPoints(models.Model):
 
 
 
+from decimal import Decimal, ROUND_HALF_UP
+
 class PointConversion(models.Model):
-    conversion_rate = models.DecimalField(max_digits=5, decimal_places=2, default=0.5)  # 1 point = 0.5 dollars
+    conversion_rate = models.DecimalField(max_digits=5, decimal_places=5, default=Decimal('0.00143'))  # 1 point = 0.00143 USD
 
     def __str__(self):
         return f"1 point = {self.conversion_rate} USD"
 
     def convert_points_to_usd(self, points):
-        """Convertit les points en dollars selon le taux de conversion."""
-        return points * self.conversion_rate
+        """Convertit les points en dollars avec un arrondi à 2 décimales."""
+        result = Decimal(points) * self.conversion_rate
+        return result.quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+
 
 
 
@@ -694,7 +699,7 @@ class Advertisement(models.Model):
     target_radius_km = models.DecimalField(max_digits=5, decimal_places=2, blank=True, null=True, help_text="Rayon en kilomètres autour de la position ciblée.")
 
     def get_absolute_url(self):
-        return reverse('advertisement_detail', kwargs={'slug': self.slug})
+      return reverse('advertisement_detail', kwargs={'slug': self.slug})
 
     def save(self, *args, **kwargs):
         if not self.slug:
@@ -729,11 +734,12 @@ class AdInteraction(models.Model):
         ('comment', 'Comment'),
         ('share', 'Share'),
         ('visit', 'Visit'),
+        ('bonus_1_point', 'Bonus 1 Point'),
     ]
 
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     ad = models.ForeignKey(Advertisement, on_delete=models.CASCADE, related_name="interactions")
-    interaction_type = models.CharField(max_length=10, choices=INTERACTION_CHOICES)
+    interaction_type = models.CharField(max_length=16, choices=INTERACTION_CHOICES)
     timestamp = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -844,8 +850,21 @@ class SpotPubStore(models.Model):
 
 
 # models.py
+from django.utils import timezone
+from django.contrib.auth import get_user_model
+User = get_user_model()
+class StoreVisit(models.Model):
+    store = models.ForeignKey('Store', on_delete=models.CASCADE, related_name='daily_visits')
+    user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True)
+    ip_address = models.GenericIPAddressField(null=True, blank=True)
+    date = models.DateField(default=timezone.now)
+    count = models.PositiveIntegerField(default=0)
 
+    class Meta:
+        unique_together = ('store', 'user', 'ip_address', 'date')
 
+    def __str__(self):
+        return f"{self.store.name} - {self.date} - {self.user or self.ip_address}"
 
 
 # class AdInteraction(models.Model):

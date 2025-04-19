@@ -15,7 +15,7 @@
      <div class="mb-8 p-4 bg-blue-100 text-blue-800 rounded-lg">
         <h3 class="font-semibold text-xl text-center">Gagnez des points de fidélité !</h3>
         <p class="text-center">
-            Après <strong>5 achats</strong>, vous gagnez <strong>1 point de fidélité</strong>. Maximisez vos achats pour accumuler des points et profiter d’avantages exclusifs ! Plus vous achetez, plus vous gagnez de points. De plus, vous pouvez également accumuler des points en likant, commentant et partageant des publicités, ce qui vous permet de gagner jusqu’à <strong>8 points par publicité</strong> ! 🚀
+            Après <strong>5 achats</strong>, vous gagnez <strong>1 point de fidélité</strong>. Maximisez vos achats pour accumuler des points et profiter d’avantages exclusifs ! Plus vous achetez, plus vous gagnez de points. De plus, vous pouvez également accumuler des points en likant, commentant et partageant des publicités, ce qui vous permet de gagner jusqu’à <strong>7 points par publicité</strong> ! 🚀
         </p>
     </div>
     <!-- Titre de la page -->
@@ -132,6 +132,98 @@
 
 </section>
 
+<section id="favorite_stores" class="py-16 bg-gray-100">
+    <div class="max-w-6xl mx-auto text-center">
+        <h2 class="text-3xl font-semibold mb-8">Les stores Populaires</h2>
+        
+        <!-- Carrousel Glide.js -->
+        <div class="relative w-full glide-01">
+            <!-- Carousel wrapper -->
+            <div class="overflow-hidden" data-glide-el="track">
+                <ul class="relative w-full overflow-hidden p-0 whitespace-no-wrap flex flex-no-wrap [backface-visibility: hidden] [transform-style: preserve-3d] [touch-action: pan-Y] [will-change: transform]">
+                    {% if favorite_stores %}
+                        {% for store in favorite_stores %}
+                            <li class="min-w-[250px] md:w-[calc(33.33%-24px)]">
+                                <div class="bg-white p-6 rounded-lg shadow-lg hover:shadow-2xl mb-6">
+                                    {% if store.thumbnail %}
+                                        <img class="w-full h-48 object-cover rounded-t-lg" src="{{ store.thumbnail.url }}" alt="{{ store.name }}">
+                                    {% else %}
+                                        <img class="w-full h-48 object-cover rounded-t-lg" src="{% static 'img/default-store.jpg' %}" alt="Image par défaut du Store">
+                                    {% endif %}
+                                    
+                                    <h3 class="text-xl font-semibold text-gray-800 mt-4">{{ store.name }}</h3>
+                                    <p class="text-lg text-gray-600">{{ store.commune }}</p>
+                                    
+                                    <div class="flex items-center mt-2">
+                                        <p class="text-yellow-500">
+                                            {% for i in range_10 %}
+                                                {% if i <= store.average_rating %}
+                                                    &#9733;
+                                                {% else %}
+                                                    &#9734;
+                                                {% endif %}
+                                            {% endfor %}
+                                        </p>
+                                        <span class="text-sm text-gray-500 ml-2">Note moyenne : {{ store.average_rating|default:"0" }}/10</span>
+                                    </div>
+
+                                    <div class="mt-4">
+                                        <a href="{% url 'store_detail' store.slug %}" class="inline-block px-6 py-3 text-white bg-blue-600 hover:bg-blue-800 rounded-md font-semibold transition duration-300">
+                                            Voir plus
+                                        </a>
+                                    </div>
+                                </div>
+                            </li>
+                        {% endfor %}
+                    {% else %}
+                        <p class="text-center text-lg text-gray-600">Aucune boutique favorite trouvée.</p>
+                    {% endif %}
+                </ul>
+            </div>
+            
+            <!-- Carousel controls -->
+            <div class="absolute left-0 flex items-center justify-between w-full h-0 px-4 top-1/2" data-glide-el="controls">
+                <button class="inline-flex items-center justify-center w-8 h-8 transition duration-300 border rounded-full lg:w-12 lg:h-12 text-slate-700 border-slate-700 hover:text-slate-900 hover:border-slate-900 focus-visible:outline-none bg-white/20" data-glide-dir="<" aria-label="previous slide">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M6.75 15.75L3 12m0 0l3.75-3.75M3 12h18"/>
+                    </svg>
+                </button>
+                <button class="inline-flex items-center justify-center w-8 h-8 transition duration-300 border rounded-full lg:w-12 lg:h-12 text-slate-700 border-slate-700 hover:text-slate-900 hover:border-slate-900 focus-visible:outline-none bg-white/20" data-glide-dir=">" aria-label="next slide">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M17.25 8.25L21 12m0 0l-3.75 3.75M21 12H3"/>
+                    </svg>
+                </button>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Glide.js Script -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Glide.js/3.0.2/glide.js"></script>
+
+<script>
+    var glide01 = new Glide('.glide-01', {
+        type: 'carousel',
+        focusAt: 'center',
+        perView: 3,
+        autoplay: 3000,
+        animationDuration: 700,
+        gap: 24,
+        classes: {
+            activeNav: '[&>*]:bg-slate-700',
+        },
+        breakpoints: {
+            1024: {
+                perView: 2
+            },
+            640: {
+                perView: 1
+            }
+        },
+    });
+
+    glide01.mount();
+</script>
 <!-- Popup pour afficher l'image agrandie -->
 <div id="imagePopup" class="fixed inset-0 bg-gray-800 bg-opacity-75 flex items-center justify-center hidden">
     <div class="bg-white p-4 rounded-xl max-w-lg">
@@ -139,7 +231,40 @@
         <img id="popupImage" src="" alt="Image agrandie" class="w-full h-auto rounded-lg">
     </div>
 </div>
+{% if ad_popup and ad_popup.is_active %}
+<div id="popupAd" class="modal show d-block" tabindex="-1" style="background: rgba(0,0,0,0.5); position: fixed; top: 0; left: 0; width: 100%; height: 100%; display: flex; justify-content: center; align-items: center; z-index: 9999;">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <button type="button" class="btn-close" onclick="closePopup()" style="border: none; background: none; font-size: 30px; color: #fff; position: absolute; top: 20px; right: 20px;">&times;</button>
+            <div class="modal-body text-center">
+                {% if ad_popup.media_type == "image" %}
+                    <img src="{{ ad_popup.file.url }}" class="img-fluid" alt="Publicité">
+                {% else %}
+                    <video autoplay controls class="img-fluid" style="max-width: 100%; max-height: 100vh;">
+                        <source src="{{ ad_popup.file.url }}" type="video/mp4">
+                    </video>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
 
+<script>
+    function closePopup() {
+        const popup = document.getElementById("popupAd");
+    
+        // Stopper la vidéo s'il y en a une
+        const video = popup.querySelector("video");
+        if (video) {
+            video.pause();
+            video.currentTime = 0; // optionnel : remet la vidéo au début
+        }
+    
+        // Cacher le popup
+        popup.style.display = "none";
+    }
+</script>
 <script>
     // Afficher le popup avec l'image agrandie
     function showImagePopup(imageUrl) {

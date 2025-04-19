@@ -1,21 +1,27 @@
 {% extends "base.html" %}
+{% load custom_filters %}
 {% load static %}
 {% block content %}
-<!-- Hero Section -->
-<header class="relative bg-gradient-to-r from-gray-900 to-gray-700 h-screen flex items-center" style="background-image: url('{% static "img/zando.jpg" %}'); background-size: cover;">
+
+<header class="relative bg-gradient-to-r from-gray-900 to-gray-700 h-screen flex items-center" style="background-image: url('{% static "img/lushipalais.jpg" %}'); background-size: cover;">
+    <!-- Couche d'opacité noire -->
     <div class="absolute inset-0 opacity-50 bg-black"></div>
-    <div class="relative z-10 max-w-4xl mx-auto text-center text-white">
-        <h1 class="text-5xl font-bold mb-4">Bienvenue sur lushi_marche. kwa na Contrôle!</h1>
-        <p class="text-lg mb-6">Ayez un contrôle total des stores,super marché,etc. et les prix de chaque produit du grand marché lushois, sans avoir à vous déplacer sous le soleil ni sous la pluie, simplement depuis le confort de votre maison.</p>
-        <p class="text-lg mb-6">Achetez à l'avance, directement depuis chez vous, au bureau, ou n'importe où, pour éviter de marcher dans la boue et être exposé à tous les risques liés à une présence physique dans un marché.</p>
-        <p class="text-lg mb-6">Dès que vous arrivez, votre panier sera prêt pour vous, ou vous pouvez même commander la livraison à domicile.</p>
-        <p class="text-md">Venez faire vos achats en toute simplicité, sans perdre de temps!</p>
+    
+    <!-- Contenu centré -->
+    <div class="relative z-10 flex items-center justify-center w-full h-full px-6 md:px-12">
+        <div class="text-center max-w-2xl mx-auto text-white">
+            <h4 class="text-sm font-light mb-2">Bienvenue sur</h4>
+<h1 class="text-4xl md:text-5xl font-bold uppercase mb-4">Lushi Marché</h1>
+<h3 class="text-2xl md:text-3xl font-light mb-6">Kwa na Avance !</h3>
+<p class="text-base md:text-lg mb-8">Faites vos courses au grand marché de Lubumbashi sans vous déplacer. Comparez les prix, commandez depuis chez vous ou au bureau, évitez la foule, la pluie ou la boue. Votre panier vous attend à l’arrivée, ou faites-vous livrer directement chez vous !</p>
+
+            <a href="{% url 'contact' %}" class="inline-block bg-transparent border-2 border-white text-white py-2 px-6 rounded-md hover:bg-white hover:text-black transition duration-300">Contactez-nous</a>
+        </div>
     </div>
 </header>
-
 <section id="favorite_stores" class="py-16 bg-gray-100">
     <div class="max-w-6xl mx-auto text-center">
-        <h2 class="text-3xl font-semibold mb-8">Boutiques Populaires</h2>
+        <h2 class="text-3xl font-semibold mb-8">Les stores Populaires</h2>
         <div class="mb-8">
             <a href="{% url 'list_store' %}" class="inline-block px-8 py-4 text-white bg-blue-600 hover:bg-blue-800 rounded-md font-semibold transition duration-300">
                 Voir plus de Boutiques 
@@ -169,7 +175,7 @@
 {% comment %} product annonce {% endcomment %}
 <section id="produits" class="py-16 bg-gray-100">
     <div class="max-w-6xl mx-auto text-center">
-        <h2 class="text-3xl font-semibold mb-8">Derniers Produits de Zando</h2>
+        <h2 class="text-3xl font-semibold mb-8">Derniers Produits du marché</h2>
          <!-- Bouton Voir plus pour accéder à la liste complète des produits -->
         <div class="mb-8">
             <a href="{% url 'list_product' %}" class="inline-block px-8 py-4 text-white bg-blue-600 hover:bg-blue-800 rounded-md font-semibold transition duration-300">
@@ -227,7 +233,7 @@
     </div>
 </section>
 <div class="text-center">
-    <h1 class="text-3xl font-bold mb-6">Liste des Publicités</h1>
+    <h1 class="text-3xl font-bold mb-6">Publicités</h1>
 
     {% if user_points %}
     <div class="flex justify-center space-x-6 mt-4">
@@ -270,7 +276,14 @@
                     <source src="{{ ad.media_file.url }}" type="video/mp4">
                 </video>
             {% endif %}
-
+            {% if ad.url %}
+            <a href="{% url 'visit_ad_url' ad.slug %}" class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-800 mt-4 inline-block">
+                🌐 Visiter le lien de la pub 👁 Visites : {{ ad.visits_count }}
+            </a>
+            {% if not user.is_authenticated %}
+                <p class="text-sm text-red-500 mt-2">Connecte-toi pour gagner des points en visitant les pubs.</p>
+            {% endif %}
+        {% endif %}
             <!-- Interaction utilisateur (like, comment, share) -->
             <div class="flex items-center justify-between mt-4">
                 {% if user.is_authenticated %}
@@ -294,17 +307,45 @@
                         <span class="text-blue-500">💬</span>
                     </a>
 
-                    {% comment %} <!-- Share Icon -->
-                    <button onclick="showSharePopup()" class="text-gray-600 hover:text-gray-800">
-                        <span class="text-2xl">🔗</span>
-                    </button> {% endcomment %}
+                    {% if ad.id not in user_shares %}
+                    <button onclick="openSharePopup({{ ad.id }})" class="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-700 mt-2">
+                        <i class="fa fa-share-alt"></i> Partager
+                    </button>
                 {% else %}
-                <p class="mt-4 text-red-500 font-semibold">🔒 Connectez-vous pour interagir avec cette publicité.</p>
+                    <button class="px-4 py-2 bg-gray-400 text-white rounded-lg mt-2" disabled>
+                        <i class="fa fa-share-alt"></i> Déjà partagé
+                    </button>
+                {% endif %}
+            {% else %}
+                <p class="text-red-500 mt-2">🔒 Connectez-vous pour interagir avec cette publicité.</p>
                 <a href="{% url 'signin' %}" class="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-700 mt-2 inline-block">
                     Se connecter
                 </a>
-                {% endif %}
+            {% endif %}
+        </div>
+
+        <!-- POPUP DE PARTAGE -->
+        <div id="share-popup-{{ ad.id }}" class="fixed inset-0 bg-gray-800 bg-opacity-50 flex items-center justify-center hidden z-50">
+            <div class="bg-white p-6 rounded-xl relative w-96">
+                <button onclick="closeSharePopup({{ ad.id }})" class="absolute top-2 right-3 text-gray-600 text-2xl hover:text-gray-900">&times;</button>
+                <h3 class="text-xl font-semibold text-center">Partager cette publicité</h3>
+                <form method="POST" action="{% url 'record_share' ad.slug %}" id="share-form-{{ ad.id }}">
+                    {% csrf_token %}
+                    <input type="hidden" name="social_network" id="social-network-input-{{ ad.id }}">
+                    <div class="flex justify-center mt-6 space-x-4">
+                        <a href="#" onclick="recordShare(event, {{ ad.id }}, 'whatsapp')" data-url="{{ ad_absolute_urls|get_item:ad.id }}">
+                            <img src="{% static 'img/whatsap2.jpg' %}" class="w-10 h-10">
+                        </a>
+                        <a href="#" onclick="recordShare(event, {{ ad.id }}, 'facebook')" data-url="{{ ad_absolute_urls|get_item:ad.id }}">
+                            <img src="{% static 'img/fb2.png' %}" class="w-10 h-10">
+                        </a>                            
+                        
+                    </div>
+                </form>
             </div>
+        </div>
+        
+                
 
             <!-- Statistiques sur la publicité -->
             <div class="mt-4 flex justify-between items-center text-gray-500">
@@ -344,7 +385,7 @@
                 <div class="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition duration-300">
                     <div class="h-48 bg-cover bg-center rounded-lg" style="background-image: url('{{ website.profile_picture.url }}');"></div>
                     <h3 class="text-xl font-bold text-gray-800 mb-2">{{ website.name }}</h3>
-                    <p class="text-sm text-gray-500">{{ website.description }}</p>
+                    <p class="text-sm text-gray-500">{{ website.description|truncatewords:14 }}</p>
                     <a href="{{ website.website_link }}" class="text-blue-500 hover:underline">Visite le site</a>
                 </div>
             {% endfor %}
@@ -525,6 +566,24 @@
     </div>
   </section>
   <!-- Popup pour afficher l'image agrandie -->
+  {% if ad_popup and ad_popup.is_active %}
+  <div id="popupAd" class="modal show d-block" tabindex="-1" style="background: rgba(0,0,0,0.5); position: fixed; top: 0; left: 0; width: 100%; height: 100%; display: flex; justify-content: center; align-items: center; z-index: 9999;">
+      <div class="modal-dialog modal-dialog-centered">
+          <div class="modal-content">
+              <button type="button" class="btn-close" onclick="closePopup()" style="border: none; background: none; font-size: 30px; color: #fff; position: absolute; top: 20px; right: 20px;">&times;</button>
+              <div class="modal-body text-center">
+                  {% if ad_popup.media_type == "image" %}
+                      <img src="{{ ad_popup.file.url }}" class="img-fluid" alt="Publicité">
+                  {% else %}
+                      <video autoplay controls class="img-fluid" style="max-width: 100%; max-height: 100vh;">
+                          <source src="{{ ad_popup.file.url }}" type="video/mp4">
+                      </video>
+                  {% endif %}
+              </div>
+          </div>
+      </div>
+  </div>
+  {% endif %}
 <div id="imagePopup" class="fixed inset-0 bg-gray-800 bg-opacity-75 flex items-center justify-center hidden">
     <div class="bg-white p-4 rounded-xl max-w-lg">
         <span class="absolute top-0 right-0 p-3 cursor-pointer text-white bg-red-600 rounded-full text-3xl flex justify-center items-center" onclick="hideImagePopup()">X</span>
@@ -548,6 +607,19 @@
 
 <!-- JavaScript pour contrôler l'ouverture/fermeture du slide -->
 <script>
+    function closePopup() {
+        const popup = document.getElementById("popupAd");
+    
+        // Stopper la vidéo s'il y en a une
+        const video = popup.querySelector("video");
+        if (video) {
+            video.pause();
+            video.currentTime = 0; // optionnel : remet la vidéo au début
+        }
+    
+        // Cacher le popup
+        popup.style.display = "none";
+    }
     const openSlideButton = document.getElementById('open-slide');
     const searchSlide = document.getElementById('search-slide');
     const closeSlideButton = document.getElementById('close-slide');
@@ -579,7 +651,49 @@
     // Masquer le popup
     function hideImagePopup() {
         document.getElementById('imagePopup').classList.add('hidden');
+
     }
+    function openSharePopup(adId) {
+        document.getElementById(`share-popup-${adId}`).classList.remove('hidden');
+    }
+    function closeSharePopup(adId) {
+        document.getElementById(`share-popup-${adId}`).classList.add('hidden');
+    }
+    function recordShare(event, adId, network) {
+        event.preventDefault();
+    
+        const form = document.getElementById(`share-form-${adId}`);
+        document.getElementById(`social-network-input-${adId}`).value = network;
+    
+        // ✅ Récupération de l'URL de l'annonce à partir du data-url
+        const adUrl = event.currentTarget.getAttribute('data-url');
+    
+        const url = form.action;
+        const data = new FormData(form);
+    
+        const shareLinks = {
+            'facebook': `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(adUrl)}`,
+            'whatsapp': `https://api.whatsapp.com/send?text=${encodeURIComponent(adUrl)}`,
+        };
+    
+        // ✅ Ouverture de la fenêtre de partage
+        window.open(shareLinks[network], '_blank');
+    
+        // ✅ Requête POST pour enregistrer le partage
+        fetch(url, {
+            method: 'POST',
+            body: data
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.status === 'success') {
+                alert(`Merci ! Vous avez gagné ${data.points} points.`);
+                closeSharePopup(adId);
+                location.reload();
+            }
+        });
+    }
+    
 </script>
   
 {% endblock content %}

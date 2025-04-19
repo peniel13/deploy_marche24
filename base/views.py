@@ -1,5 +1,5 @@
 from django.shortcuts import render,redirect
-from core.models import Store, Category, Product,Typestore,CategoryStore,Advertisement,UserPoints,AdInteraction,UserLocation
+from core.models import Store, Category, Product,Typestore,CategoryStore,Advertisement,UserPoints,AdInteraction,UserLocation,Share,PopUpAdvertisement
 from .models import WebsiteLink,Publicite
 from core.forms import AdInteractionForm
 from django.db.models import Q
@@ -183,8 +183,19 @@ def index(request):
                 return redirect('advertisement_list')
     else:
         form = AdInteractionForm()
-            
-              
+
+    user_shares = []
+    ad_absolute_urls = {}
+
+    if request.user.is_authenticated:
+        # Récupère toutes les pubs déjà partagées par l'utilisateur
+        shared_ads = Share.objects.filter(user=request.user, ad__in=ads).values_list('ad_id', flat=True)
+        user_shares = list(shared_ads)
+   
+    # Génère les URLs absolues pour chaque publicité
+    ad_absolute_urls = {ad.id: request.build_absolute_uri(ad.get_absolute_url()) for ad in ads}      
+
+    ad_popup = PopUpAdvertisement.objects.filter(is_active=True).first()          
       # Les 3 dernières publicités
     # Passer toutes les données nécessaires au template
     return render(request, "base/index.html", {  
@@ -198,6 +209,9 @@ def index(request):
         'ads': ads,
         'form': form,
         'user_points': user_points,
+        'user_shares': user_shares,
+        'ad_absolute_urls': ad_absolute_urls,
+        'ad_popup': ad_popup,
     })
 
 def apropos(request):
@@ -310,7 +324,7 @@ from django.db.models import Avg
 from core.models import Store, Testimonial
 
 def list_store(request):
-    stores = Store.objects.all().order_by('-created_at')
+    stores = Store.objects.filter(is_active=True).order_by('-created_at')
     favorite_stores = Store.objects.filter(favoritestore=True).order_by('-created_at')
     # Filtrage par nom
     store_name = request.GET.get('nom', '').strip()  # On enlève les espaces en début et en fin

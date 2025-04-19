@@ -108,7 +108,7 @@ from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 @login_required(login_url="signin")
 def profile(request):
     user = request.user
-    stores = Store.objects.filter(owner=user)
+    stores = Store.objects.filter(owner=user, is_active=True)
     
     # Récupérer toutes les commandes de l'utilisateur
     orders_list = Order.objects.filter(user=request.user, activated=True).order_by('-created_at')
@@ -194,7 +194,7 @@ def create_store(request):
             store.owner = request.user  # Associer l'utilisateur à ce store
             store.save()
 
-            messages.success(request, "Votre store a été créé avec succès !")
+            messages.success(request, "Votre store a été créé avec succès, mais il n'est pas encore activé pour être visible. Nous vous prions de contacter notre administration pour l'activer.")
             return redirect('profile')  # Redirection après succès
     else:
         form = StoreForm(initial={'user': request.user})
@@ -1334,7 +1334,8 @@ def mobile_money_checkout(request):
     # Vérifier si le panier est vide
     cart = get_or_create_cart(request.user)
     if cart.get_item_count() == 0:
-        return redirect('core/cart_detail')  # Si le panier est vide, on redirige
+        return redirect('cart_detail')  # ou 'core:cart_detail' si bien défini
+  # Si le panier est vide, on redirige
 
     # Calculer le total des articles et le montant total
     total_items = cart.get_item_count()
@@ -1602,12 +1603,17 @@ from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from datetime import datetime
 from django.contrib import messages
 from .models import Store, Category, Product, Testimonialproduct, Testimonial, Order, OrderItem
-
+from django.utils import timezone
+from .models import Store, StoreVisit
+from .utils import get_client_ip
+from datetime import timedelta
 
 def store_detail(request, slug):
     # Récupérer le store en fonction du slug
     store = get_object_or_404(Store, slug=slug)
-
+    
+    ad_popup = PopUpAdvertisement.objects.filter(is_active=True).first()
+    favorite_stores = Store.objects.filter(favoritestore=True).order_by('-created_at')
     # Récupérer les catégories associées au store
     categories = Category.objects.filter(store=store)
 
@@ -1730,6 +1736,29 @@ def store_detail(request, slug):
     # Nombre total de produits sans pagination
     total_products = Product.objects.filter(store=store).count()
 
+    today = timezone.now().date()
+    week_ago = today - timedelta(days=6)  # 7 jours avec aujourd'hui
+
+    daily_visits = StoreVisit.objects.filter(store=store, date=today).count()
+    weekly_visits = StoreVisit.objects.filter(store=store, date__gte=week_ago).count()
+
+    if request.user.is_authenticated:
+        visit, created = StoreVisit.objects.get_or_create(
+            store=store,
+            user=request.user,
+            date=today,
+            defaults={'count': 1}
+        )
+    else:
+        ip_address = get_client_ip(request)
+        visit, created = StoreVisit.objects.get_or_create(
+            store=store,
+            user=None,
+            ip_address=ip_address,
+            date=today,
+            defaults={'count': 1}
+        )
+
 # Récupérer tous les produits avant pagination
 
 
@@ -1753,6 +1782,10 @@ def store_detail(request, slug):
         'product_count': product_count,
         'total_products': total_products,
         'category_count': category_count,
+        'daily_visits': daily_visits,
+        'weekly_visits': weekly_visits,
+        'favorite_stores':favorite_stores,
+        'ad_popup': ad_popup,
     }
 
     return render(request, 'core/store_detail.html', context)
@@ -2942,7 +2975,9 @@ from django.http import JsonResponse
 @login_required
 def list_product_rewards(request):
     product_rewards = ProductPoints.objects.all()
-
+    ad_popup = PopUpAdvertisement.objects.filter(is_active=True).first()
+    favorite_stores = Store.objects.filter(favoritestore=True).order_by('-created_at')
+    range_10 = range(1, 11)
     search_query = request.GET.get('search', '').strip()
     if search_query:
         product_rewards = product_rewards.filter(name__icontains=search_query) | product_rewards.filter(description__icontains=search_query)
@@ -2993,6 +3028,9 @@ def list_product_rewards(request):
         'user_points': user_points.points if user_points else 0,
         'spent_points': user_points.spent_points if user_points else 0,
         'paginator': paginator,
+        'favorite_stores':favorite_stores,
+        'range_10': range_10, 
+        'ad_popup': ad_popup,
     })
 
 from django.shortcuts import render, get_object_or_404
@@ -3637,7 +3675,7 @@ from .models import Product, Testimonialproduct
 def product_detail(request, id):
     # Récupère le produit en fonction de son ID
     product = get_object_or_404(Product, id=id)
-
+    favorite_stores = Store.objects.filter(favoritestore=True).order_by('-created_at')
     # Récupère la catégorie du produit
     category = product.category
 
@@ -3681,6 +3719,7 @@ def product_detail(request, id):
         'testimonials': testimonials,  # Les témoignages paginés
         'range_10': range(1, 11),
         'average_rating': average_rating, 
+        'favorite_stores':favorite_stores,
     })
  
 
@@ -3897,7 +3936,8 @@ from .forms import AdInteractionForm
 
 def advertisement_list(request):
     ad_popup = PopUpAdvertisement.objects.filter(is_active=True).first()
-
+    favorite_stores = Store.objects.filter(favoritestore=True).order_by('-created_at')
+    range_10 = range(1, 11)
     # ⚡️ Utilisateur non authentifié : cache la liste des pubs visibles par tous
     if not request.user.is_authenticated:
         ads = cache.get('public_ads')
@@ -4027,6 +4067,18 @@ def advertisement_list(request):
                 return redirect('advertisement_list')
     else:
         form = AdInteractionForm()
+       
+    user_shares = []
+    ad_absolute_urls = {}
+
+    if request.user.is_authenticated:
+        # Récupère toutes les pubs déjà partagées par l'utilisateur
+        shared_ads = Share.objects.filter(user=request.user, ad__in=ads).values_list('ad_id', flat=True)
+        user_shares = list(shared_ads)
+   
+    # Génère les URLs absolues pour chaque publicité
+    ad_absolute_urls = {ad.id: request.build_absolute_uri(ad.get_absolute_url()) for ad in ads}
+
 
     paginator = Paginator(ads, 6)
     page = request.GET.get('page')
@@ -4049,7 +4101,11 @@ def advertisement_list(request):
         'form': form,
         'user_points': user_points,
         'ad_popup': ad_popup,
-        'no_ads_message': no_ads_message
+        'no_ads_message': no_ads_message,
+        'user_shares': user_shares,
+        'ad_absolute_urls': ad_absolute_urls,
+        'favorite_stores':favorite_stores,
+        'range_10': range_10, 
     })
 
 # def advertisement_list(request):
@@ -4534,7 +4590,8 @@ from django.shortcuts import get_object_or_404, redirect
 
 def advertisement_detail(request, slug):
     ad = Advertisement.objects.filter(slug=slug).first()
-    
+    favorite_stores = Store.objects.filter(favoritestore=True).order_by('-created_at')
+    range_10 = range(1, 11)
     # Si l'annonce n'existe pas, rediriger vers la liste des publicités
     if not ad:
         return redirect('advertisement_list')
@@ -4549,7 +4606,9 @@ def advertisement_detail(request, slug):
     return render(request, 'core/advertisement_detail.html', {
         'ad': ad,
         'user_shared': user_shared,
-        'ad_absolute_url': ad_absolute_url
+        'ad_absolute_url': ad_absolute_url,
+        'favorite_stores':favorite_stores,
+        'range_10': range_10, 
     })
 
 
@@ -4567,12 +4626,23 @@ from .models import Advertisement, AdInteraction, UserPoints
 def visit_ad_url(request, slug):
     ad = get_object_or_404(Advertisement, slug=slug)
 
-    # Incrémente le compteur de visites (visible publiquement)
+    # Incrémente le compteur de visites
     ad.visits_count += 1
     ad.save()
 
-    # S'il est connecté, on vérifie l'interaction
     if request.user.is_authenticated:
+        # Vérifie si l'utilisateur a déjà gagné le point bonus via l'autre vue
+        already_got_bonus_point = AdInteraction.objects.filter(
+            user=request.user,
+            ad=ad,
+            interaction_type='bonus_1_point'
+        ).exists()
+
+        if already_got_bonus_point:
+            messages.info(request, "Vous avez déjà gagné le point bonus pour cette publicité. Vous ne pouvez pas gagner un autre point ici.")
+            return redirect(ad.url)
+
+        # Vérifie s’il a déjà eu le point ici
         already_visited = AdInteraction.objects.filter(
             user=request.user,
             ad=ad,
@@ -4580,26 +4650,85 @@ def visit_ad_url(request, slug):
         ).exists()
 
         if already_visited:
-            messages.info(request, "Vous avez déjà gagné 2 points pour cette visite.")
+            messages.info(request, "Vous avez déjà gagné 1 point pour cette visite.")
         else:
-            # Crée l'interaction
+            # Crée l’interaction et ajoute 1 point
             AdInteraction.objects.create(
                 user=request.user,
                 ad=ad,
                 interaction_type='visit'
             )
 
-            # Ajoute les points
             user_points, _ = UserPoints.objects.get_or_create(user=request.user)
-            user_points.points += 2
-            user_points.ad_points += 2
+            user_points.points += 1
+            user_points.ad_points += 1
             user_points.save()
 
-            messages.success(request, "Vous avez gagné 2 points pour avoir visité cette publicité !")
+            messages.success(request, "Vous avez gagné 1 point pour avoir visité cette publicité !")
     else:
         messages.info(request, "Connecte-toi pour gagner des points en visitant les liens des publicités.")
 
     return redirect(ad.url)
+
+
+
+from django.db.models import Q
+
+def visit_ad_url_no_points(request, slug):
+    ad = get_object_or_404(Advertisement, slug=slug)
+
+    # Incrémenter le compteur de visites
+    ad.visits_count += 1
+    ad.save()
+
+    if request.user.is_authenticated:
+        # Vérifier si l'utilisateur a déjà eu les 2 points pour cette pub
+        has_visited_main = AdInteraction.objects.filter(
+            user=request.user,
+            ad=ad,
+            interaction_type='visit'
+        ).exists()
+
+        if has_visited_main:
+            messages.info(request, "Vous avez déjà gagné 1 point pour cette publicité. Vous ne pouvez pas gagner ce point supplémentaire.")
+            return redirect(ad.url)
+
+        # Vérifier si quelqu’un a déjà pris le point unique
+        point_already_taken = AdInteraction.objects.filter(
+            ad=ad,
+            interaction_type='bonus_1_point'
+        ).exists()
+
+        if point_already_taken:
+           messages.info(request, "Le point bonus de cette publicité a déjà été remporté par un autre utilisateur. Continue de visiter les liens des publicités, ta régularité sera bientôt récompensée par l’administration !")
+        else:
+            # Créer une interaction de type "bonus_1_point"
+            AdInteraction.objects.create(
+                user=request.user,
+                ad=ad,
+                interaction_type='bonus_1_point'
+            )
+
+            # Ajouter 1 point au profil de l'utilisateur
+            user_points, _ = UserPoints.objects.get_or_create(user=request.user)
+            user_points.points += 1
+            user_points.ad_points += 1
+            user_points.save()
+
+            messages.success(request, "Félicitations ! Vous avez gagné 1 point bonus en étant le premier à visiter ce lien.")
+    else:
+        messages.info(request, "Connecte-toi pour tenter de gagner le point bonus réservé au premier visiteur.")
+
+    return redirect(ad.url)
+
+# def visit_ad_url_no_points(request, slug):
+#     ad = get_object_or_404(Advertisement, slug=slug)
+
+#     # Incrémente juste le compteur de visites
+#     ad.visits_count += 1
+#     ad.save()
+
+#     return redirect(ad.url)
 
 # @login_required
 # def visit_ad_url(request, slug):
@@ -4683,7 +4812,7 @@ from django.http import JsonResponse
 from .models import Advertisement, Share, UserPoints
 from django.http import JsonResponse
 from .models import Advertisement, Share
-from .tasks import handle_share_task
+
 
 
 @login_required
@@ -4951,7 +5080,8 @@ def user_dashboard(request):
     total_spent_points = user_purchases.aggregate(total_spent=Sum('points_used'))['total_spent'] or 0
     
     # Récupérer le taux de conversion actuel
-    conversion_rate = PointConversion.objects.first()  # Si vous avez plusieurs taux, ajustez cette logique
+    conversion_rate = PointConversion.objects.first() 
+     # Si vous avez plusieurs taux, ajustez cette logique
     if conversion_rate:
         usd_value = conversion_rate.convert_points_to_usd(user_points.points)
     else:
@@ -4992,6 +5122,7 @@ def user_dashboard(request):
         'purchases': purchases,  # Achats paginés
         'usd_value': usd_value,
         'total_in_usd': total_in_usd,
+        
     }
 
     return render(request, 'core/user_dashboard.html', context)

@@ -2,13 +2,19 @@
 
 {% block content %}
 
-<h2 class="text-center text-3xl font-bold mb-6">Tableau de bord ({{ request.user.username }})</h2>
+<h2 class="text-center text-3xl font-bold mb-6">Tableau de bord ({{ request.user.username}} 👑) </h2>
 
 <div class="text-center">
   <p class="text-green-500 font-bold text-lg">🏆 Points disponibles: {{ total_points }}</p>
   <p class="text-blue-500 font-bold text-lg">💵 Valeur en dollars: {{ total_points }} Point(s) =  ${{ total_in_usd|floatformat:2 }}</p>  <!-- Afficher la valeur en dollars -->
   <p class="text-red-500">🔥 Points dépensés : {{ total_spent_points }}</p>
+  {% if conversion_rate %}
+  <p class="text-gray-500 italic text-sm mt-2">
+    💡 Taux de conversion : <span class="font-semibold">1 point = {{ conversion_rate|floatformat:2 }} USD</span>
+  </p>
+{% endif %}
 </div>
+
 
 
 <section id="achats" class="mt-12 pb-12">
