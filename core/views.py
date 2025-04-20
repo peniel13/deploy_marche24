@@ -3938,17 +3938,8 @@ def advertisement_list(request):
     ad_popup = PopUpAdvertisement.objects.filter(is_active=True).first()
     favorite_stores = Store.objects.filter(favoritestore=True).order_by('-created_at')
     range_10 = range(1, 11)
-    # ⚡️ Utilisateur non authentifié : cache la liste des pubs visibles par tous
-    if not request.user.is_authenticated:
-        ads = cache.get('public_ads')
-        if ads:
-            print("✅ Cache utilisé pour les publicités publiques.")
-        else:
-            print("⏳ Cache manquant. Génération de la liste des publicités publiques.")
-            ads = list(Advertisement.objects.filter(target_all_users=True).order_by('-created_at'))
-            cache.set('public_ads', ads, 60 * 10)  # Cache pendant 10 minutes
-    else:
-        ads = Advertisement.objects.all().order_by('-created_at')
+    
+    ads = Advertisement.objects.all().order_by('-created_at')
 
     if request.user.is_authenticated:
         user = request.user

@@ -92,12 +92,41 @@ WSGI_APPLICATION = 'deploy_marche24.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+# Fetch environment variables for PostgreSQL
+POSTGRES_DB = os.getenv("DB_NAME")
+POSTGRES_PASSWORD = os.getenv("DB_PASSWORD")
+POSTGRES_USER = os.getenv("DB_USER")
+POSTGRES_HOST = os.getenv("DB_HOST")
+POSTGRES_PORT = os.getenv("DB_PORT")
+
+# Check if PostgreSQL environment variables are set
+POSTGRES_READY = (
+    POSTGRES_DB is not None
+    and POSTGRES_PASSWORD is not None
+    and POSTGRES_USER is not None
+    and POSTGRES_HOST is not None
+    and POSTGRES_PORT is not None
+)
+
+# Define the DATABASES setting based on the availability of PostgreSQL variables
+if POSTGRES_READY:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': POSTGRES_DB,
+            'USER': POSTGRES_USER,
+            'PASSWORD': POSTGRES_PASSWORD,
+            'HOST': POSTGRES_HOST,
+            'PORT': POSTGRES_PORT,
+        }
     }
-}
+else:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
+        }
+    }
 
 
 # Password validation
@@ -186,23 +215,23 @@ STRIPE_TEST_SECRET_KEY = 'sk_test_51QSaN4FZEV2V9KydzSnlUBZVOFrOBptatGv88hTJAgo0I
 
 # settings.py
 
-CELERY_BROKER_URL = 'redis://localhost:6379/0'  # Redis comme broker
-CELERY_RESULT_BACKEND = 'redis://localhost:6379/0'  # Redis pour stocker les résultats
-CELERY_ACCEPT_CONTENT = ['json']
-CELERY_TASK_SERIALIZER = 'json'
-CELERY_TIMEZONE = 'UTC'
-SESSION_ENGINE = "django.contrib.sessions.backends.cache"
-SESSION_CACHE_ALIAS = "default"
-# 
-CACHES = {
-    "default": {
-        "BACKEND": "django_redis.cache.RedisCache",
-        "LOCATION": "redis://127.0.0.1:6379/1",  # adapte si ton Redis est ailleurs
-        "OPTIONS": {
-            "CLIENT_CLASS": "django_redis.client.DefaultClient",
-        }
-    }
-}
+# CELERY_BROKER_URL = 'redis://localhost:6379/0'  # Redis comme broker
+# CELERY_RESULT_BACKEND = 'redis://localhost:6379/0'  # Redis pour stocker les résultats
+# CELERY_ACCEPT_CONTENT = ['json']
+# CELERY_TASK_SERIALIZER = 'json'
+# CELERY_TIMEZONE = 'UTC'
+# SESSION_ENGINE = "django.contrib.sessions.backends.cache"
+# SESSION_CACHE_ALIAS = "default"
+# # 
+# CACHES = {
+#     "default": {
+#         "BACKEND": "django_redis.cache.RedisCache",
+#         "LOCATION": "redis://127.0.0.1:6379/1",  # adapte si ton Redis est ailleurs
+#         "OPTIONS": {
+#             "CLIENT_CLASS": "django_redis.client.DefaultClient",
+#         }
+#     }
+# }
 
 AWS_ACCESS_KEY_ID = os.getenv('AWS_ACCESS_KEY_ID')
 AWS_SECRET_ACCESS_KEY = os.getenv('AWS_SECRET_ACCESS_KEY')
