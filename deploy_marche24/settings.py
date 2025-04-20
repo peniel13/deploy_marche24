@@ -11,7 +11,11 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
 from pathlib import Path
+import os
+from dotenv import load_dotenv
 
+# Load environment variables from .env file
+load_dotenv()
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -43,6 +47,7 @@ INSTALLED_APPS = [
     'core',
     'base',
     'simplemathcaptcha',
+    'storages',
 ]
 TAILWIND_APP_NAME= 'theme'
 INTERNAL_IPS= [
@@ -130,11 +135,44 @@ USE_TZ = True
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.1/howto/static-files/
+# Fetch environment variables for AWS S3
+
+
+# # Check if all necessary AWS S3 environment variables are set
+# AWS_S3_READY = (
+#     AWS_ACCESS_KEY_ID is not None
+#     and AWS_SECRET_ACCESS_KEY is not None
+#     and AWS_STORAGE_BUCKET_NAME is not None
+#     and AWS_S3_REGION_NAME is not None
+# )
+
+# if AWS_S3_READY:
+#     # Configure AWS S3 settings
+#     AWS_S3_CUSTOM_DOMAIN = f'{AWS_STORAGE_BUCKET_NAME}.s3.amazonaws.com'
+
+#     # Static files (CSS, JavaScript, images)
+#     STATIC_URL = f'https://{AWS_S3_CUSTOM_DOMAIN}/static/'
+#     STATICFILES_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
+
+#     # Media files (uploads)
+#     MEDIA_URL = f'https://{AWS_S3_CUSTOM_DOMAIN}/media/'
+#     DEFAULT_FILE_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
+
+#     # Optional: Cache control settings
+#     AWS_S3_OBJECT_PARAMETERS = {
+#         'CacheControl': 'max-age=86400',
+#     }
+# else:
+#     # Fallback to default local storage
+#     STATIC_URL = '/static/'
+#     MEDIA_URL = '/media/'
+#     STATIC_ROOT = os.path.join(BASE_DIR, 'static')
+#     MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 STATIC_URL = 'static/'
 STATICFILES_DIRS= [BASE_DIR/'static']
 STATIC_ROOT = BASE_DIR/'assets'
-STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
+# STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 MEDIA_URL = 'img/'
 MEDIA_ROOT = BASE_DIR/'media'
 
@@ -166,5 +204,25 @@ CACHES = {
     }
 }
 
+AWS_ACCESS_KEY_ID = os.getenv('AWS_ACCESS_KEY_ID')
+AWS_SECRET_ACCESS_KEY = os.getenv('AWS_SECRET_ACCESS_KEY')
+AWS_STORAGE_BUCKET_NAME = os.getenv('AWS_STORAGE_BUCKET_NAME')
+AWS_S3_REGION_NAME = os.getenv('AWS_S3_REGION_NAME', default='af-south-1')
 
+AWS_S3_CUSTOM_DOMAIN = f"{AWS_STORAGE_BUCKET_NAME}.s3.af-south-1.amazonaws.com"
+AWS_S3_FILE_OVERWRITE = False
+AWS_QUERYSTRING_EXPIRE = 5
+AWS_S3_CUSTOM_DOMAIN = os.getenv('AWS_S3_CUSTOM_DOMAIN')
 
+STORAGES = {
+
+    # Media file (image) management   
+    "default": {
+        "BACKEND": "storages.backends.s3boto3.S3StaticStorage",
+    },
+    
+    # CSS and JS file management
+    "staticfiles": {
+        "BACKEND": "storages.backends.s3boto3.S3StaticStorage",
+    },
+}
