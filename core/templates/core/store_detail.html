@@ -79,6 +79,20 @@
     <p><strong>Visiteurs aujourd'hui :</strong> {{ daily_visits }}</p>
     <p><strong>Visiteurs cette semaine :</strong> {{ weekly_visits }}</p>
 </div>
+<!-- Note du Store (identique à list_store) -->
+<div class="flex items-center mt-4">
+    <p class="text-yellow-500 text-3xl">
+        {% for i in range_10 %}
+            {% if i <= rounded_rating %}
+                &#9733;
+            {% else %}
+                &#9734;
+            {% endif %}
+        {% endfor %}
+    </p>
+    <span class="text-sm text-gray-500 ml-3 mt-1">Note moyenne de {{ store.name }} : {{ average_rating|floatformat:1 }}/10</span>
+</div>
+
 <!-- Formulaire de recherche et filtres -->
 <section class="container mx-auto mt-8 px-4">
     <h2 class="text-3xl font-bold mb-4">
@@ -534,20 +548,8 @@
                                     {% endif %}
                                     
                                     <h3 class="text-xl font-semibold text-gray-800 mt-4">{{ store.name }}</h3>
-                                    <p class="text-lg text-gray-600">{{ store.commune }}</p>
+                                    <p class="text-lg text-gray-600">{{ store.adresse }}</p>
                                     
-                                    <div class="flex items-center mt-2">
-                                        <p class="text-yellow-500">
-                                            {% for i in range_10 %}
-                                                {% if i <= store.average_rating %}
-                                                    &#9733;
-                                                {% else %}
-                                                    &#9734;
-                                                {% endif %}
-                                            {% endfor %}
-                                        </p>
-                                        <span class="text-sm text-gray-500 ml-2">Note moyenne : {{ store.average_rating|default:"0" }}/10</span>
-                                    </div>
 
                                     <div class="mt-4">
                                         <a href="{% url 'store_detail' store.slug %}" class="inline-block px-6 py-3 text-white bg-blue-600 hover:bg-blue-800 rounded-md font-semibold transition duration-300">

@@ -1679,9 +1679,15 @@ def store_detail(request, slug):
             return redirect('store_detail', slug=slug)  # Redirige après ajout du témoignage
     else:
         form = TestimonialForm()
+    
+     # Calcul de la moyenne
 
+    # Pour afficher les étoiles
+    
     # Pagination des témoignages
     testimonials = Testimonial.objects.filter(store=store)
+    average_rating = testimonials.aggregate(Avg('rating'))['rating__avg'] or 0
+    rounded_rating = round(average_rating)
     testimonial_paginator = Paginator(testimonials, 3)
     testimonial_page = request.GET.get('testimonial_page')
     try:
@@ -1760,7 +1766,8 @@ def store_detail(request, slug):
         )
 
 # Récupérer tous les produits avant pagination
-
+     # Calcul de la note moyenne de chaque store à l'aide d'agrégation
+    
 
     # Passer tous les contextes nécessaires à la vue
     context = {
@@ -1786,6 +1793,14 @@ def store_detail(request, slug):
         'weekly_visits': weekly_visits,
         'favorite_stores':favorite_stores,
         'ad_popup': ad_popup,
+        'average_rating': average_rating,
+        'rounded_rating': rounded_rating,
+        'rating_choices': Testimonial.RATING_CHOICES,
+        'range_10': range(1, 11),
+        'average_rating': average_rating,
+        'rounded_rating': rounded_rating,
+        'range_10': range(1, 11),
+        'range_10': range(1, 11),
     }
 
     return render(request, 'core/store_detail.html', context)

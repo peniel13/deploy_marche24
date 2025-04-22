@@ -231,20 +231,9 @@
                                     {% endif %}
                                     
                                     <h3 class="text-xl font-semibold text-gray-800 mt-4">{{ store.name }}</h3>
-                                    <p class="text-lg text-gray-600">{{ store.commune }}</p>
+                                    <p class="text-lg text-gray-600">{{ store.adresse }}</p>
                                     
-                                    <div class="flex items-center mt-2">
-                                        <p class="text-yellow-500">
-                                            {% for i in range_10 %}
-                                                {% if i <= store.average_rating %}
-                                                    &#9733;
-                                                {% else %}
-                                                    &#9734;
-                                                {% endif %}
-                                            {% endfor %}
-                                        </p>
-                                        <span class="text-sm text-gray-500 ml-2">Note moyenne : {{ store.average_rating|default:"0" }}/10</span>
-                                    </div>
+                                   
 
                                     <div class="mt-4">
                                         <a href="{% url 'store_detail' store.slug %}" class="inline-block px-6 py-3 text-white bg-blue-600 hover:bg-blue-800 rounded-md font-semibold transition duration-300">
