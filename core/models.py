@@ -76,7 +76,31 @@ class CustomUser(AbstractUser):
 
     def __str__(self):
         return self.email
+    
+    def compress_image(self, image_field, quality=70):
+        if image_field:
+            img = Image.open(image_field)
+            img = img.convert('RGB')
+            buffer = BytesIO()
+            img.save(buffer, format='JPEG', quality=quality)
+            new_image_file = ContentFile(buffer.getvalue())
+            filename = os.path.basename(image_field.name)
+            return new_image_file, filename
+        return None, None
 
+    def save(self, *args, **kwargs):
+        if self.profile_pic and not hasattr(self.profile_pic, '_compressed'):
+            compressed_file, name = self.compress_image(self.profile_pic)
+            if compressed_file:
+                self.profile_pic.save(name, compressed_file, save=False)
+                self.profile_pic._compressed = True
+        super(CustomUser, self).save(*args, **kwargs)
+
+    def profile_pic_size_ko(self):
+        if self.profile_pic and hasattr(self.profile_pic, 'size'):
+            return f"{self.profile_pic.size / 1024:.1f} Ko"
+        return "Aucune image"
+    profile_pic_size_ko.short_description = 'Taille image'
 
 class Typestore(models.Model):
     nom = models.CharField(max_length=100)
@@ -137,7 +161,23 @@ class Store(models.Model):
     def save(self, *args, **kwargs):
         if not self.slug:
             self.slug = slugify(self.name)
+        # Compression de l'image thumbnail
+        if self.thumbnail and not hasattr(self.thumbnail, '_compressed'):
+            img = Image.open(self.thumbnail)
+            img = img.convert('RGB')
+            buffer = BytesIO()
+            img.save(buffer, format='JPEG', quality=70)
+            new_image_file = ContentFile(buffer.getvalue())
+            filename = os.path.basename(self.thumbnail.name)
+            self.thumbnail.save(filename, new_image_file, save=False)
+            self.thumbnail._compressed = True
+
         super(Store, self).save(*args, **kwargs)
+
+    def thumbnail_size_ko(self):
+        if self.thumbnail and hasattr(self.thumbnail, 'size'):
+            return f"{self.thumbnail.size / 1024:.1f} Ko"
+        return "Aucune image"
     
     def __str__(self):
         return self.name
@@ -183,15 +223,16 @@ class Category(models.Model):
 
 from decimal import Decimal
 from django.db import models
-
+from PIL import Image
+from io import BytesIO
+from django.core.files.base import ContentFile
+import os
 class Product(models.Model):
     store = models.ForeignKey(Store, on_delete=models.CASCADE, related_name="products")
-    category = models.ForeignKey(Category, on_delete=models.SET_NULL, related_name="products", null=True, blank=True)  # ✅ Permet d'être null
+    category = models.ForeignKey(Category, on_delete=models.SET_NULL, related_name="products", null=True, blank=True)
     name = models.CharField(max_length=255)
     description = models.TextField()
-    # Champ pour le prix de base
     price = models.DecimalField(max_digits=10, decimal_places=2)
-    # Champ pour afficher le prix avec commission
     price_with_commission = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
     stock = models.PositiveIntegerField()
     image = models.ImageField(upload_to='products/', null=True, blank=True)
@@ -204,17 +245,89 @@ class Product(models.Model):
     def get_total_price(self, quantity):
         return self.price * quantity
 
+    # --- Méthodes pour afficher la taille en Ko ---
+    def image_size_ko(self):
+        if self.image and hasattr(self.image, 'size'):
+            return f"{self.image.size / 1024:.1f} Ko"
+        return "Aucune image"
+
+    def image_galerie_size_ko(self):
+        if self.image_galerie and hasattr(self.image_galerie, 'size'):
+            return f"{self.image_galerie.size / 1024:.1f} Ko"
+        return "Aucune image"
+
+    image_size_ko.short_description = "Taille image"
+    image_galerie_size_ko.short_description = "Taille image galerie"
+
+    # --- Méthode save pour compression ---
+    def compress_image(self, image_field, quality=70):
+        from PIL import Image
+        from io import BytesIO
+        from django.core.files.base import ContentFile
+
+        if image_field:
+            img = Image.open(image_field)
+            img = img.convert('RGB')
+            buffer = BytesIO()
+            img.save(buffer, format='JPEG', quality=quality)
+            new_image_file = ContentFile(buffer.getvalue())
+            filename = os.path.basename(image_field.name)
+            return new_image_file, filename
+        return None, None
+
     def save(self, *args, **kwargs):
-        # Si le magasin a la commission activée, on applique la commission
         if self.store.apply_commission and self.price is not None:
-            commission_rate = Decimal('0.30')  # 30% de commission
-            commission = self.price * commission_rate  # Calcul de la commission
-            self.price_with_commission = self.price + commission  # Calcul du prix avec commission
+            commission_rate = Decimal('0.30')
+            commission = self.price * commission_rate
+            self.price_with_commission = self.price + commission
         else:
-            self.price_with_commission = self.price  # Aucun prix de commission si désactivé
-        
-        # Sauvegarde de l'objet
+            self.price_with_commission = self.price
+
+        if self.image and not hasattr(self.image, '_compressed'):
+            compressed_file, name = self.compress_image(self.image)
+            if compressed_file:
+                self.image.save(name, compressed_file, save=False)
+                self.image._compressed = True
+
+        if self.image_galerie and not hasattr(self.image_galerie, '_compressed'):
+            compressed_file, name = self.compress_image(self.image_galerie)
+            if compressed_file:
+                self.image_galerie.save(name, compressed_file, save=False)
+                self.image_galerie._compressed = True
+
         super(Product, self).save(*args, **kwargs)
+
+# class Product(models.Model):
+#     store = models.ForeignKey(Store, on_delete=models.CASCADE, related_name="products")
+#     category = models.ForeignKey(Category, on_delete=models.SET_NULL, related_name="products", null=True, blank=True)  # ✅ Permet d'être null
+#     name = models.CharField(max_length=255)
+#     description = models.TextField()
+#     # Champ pour le prix de base
+#     price = models.DecimalField(max_digits=10, decimal_places=2)
+#     # Champ pour afficher le prix avec commission
+#     price_with_commission = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
+#     stock = models.PositiveIntegerField()
+#     image = models.ImageField(upload_to='products/', null=True, blank=True)
+#     image_galerie = models.ImageField(upload_to='product/galerie/', null=True, blank=True, verbose_name="Image galerie")
+#     created_at = models.DateTimeField(auto_now_add=True)
+
+#     def __str__(self):
+#         return self.name
+
+#     def get_total_price(self, quantity):
+#         return self.price * quantity
+
+#     def save(self, *args, **kwargs):
+#         # Si le magasin a la commission activée, on applique la commission
+#         if self.store.apply_commission and self.price is not None:
+#             commission_rate = Decimal('0.30')  # 30% de commission
+#             commission = self.price * commission_rate  # Calcul de la commission
+#             self.price_with_commission = self.price + commission  # Calcul du prix avec commission
+#         else:
+#             self.price_with_commission = self.price  # Aucun prix de commission si désactivé
+        
+#         # Sauvegarde de l'objet
+#         super(Product, self).save(*args, **kwargs)
 
 class AssignerCategory(models.Model):
     product = models.OneToOneField(Product, on_delete=models.CASCADE, related_name="category_assignment")

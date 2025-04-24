@@ -9,9 +9,57 @@ from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
 from .models import CustomUser
 
-# Définition de l'admin pour CustomUser
+# # Définition de l'admin pour CustomUser
+# class CustomUserAdmin(UserAdmin):
+#     list_display = ('username', 'email', 'profile_pic', 'sex', 'commune', 'city', 'interests', 'is_active', 'is_staff', 'is_superuser', 'last_login', 'last_ip', 'device_fingerprint')
+
+#     # Formulaire de création d'un utilisateur
+#     add_fieldsets = (
+#         (
+#             None,
+#             {
+#                 "classes": ("wide",),
+#                 "fields": ("email", "username", "password1", "password2", "profile_pic", 'sex', 'commune', 'city', 'interests'),
+#             },
+#         ),
+#     )
+
+#     # Formulaire d'édition d'un utilisateur
+#     fieldsets = UserAdmin.fieldsets + (
+#         (None, {'fields': ('last_ip', 'device_fingerprint', 'sex', 'commune', 'city', 'interests')}),
+#     )
+
+# # Pour afficher des informations sur les utilisateurs en ligne
+#     def changelist_view(self, request, extra_context=None):
+#         online_users = get_online_users()
+#         extra_context = extra_context or {}
+#         extra_context['online_count'] = len(online_users)
+#         return super().changelist_view(request, extra_context=extra_context)
+
+# # Enregistre ton modèle avec cette configuration
+# admin.site.register(CustomUser, CustomUserAdmin)
+from django.utils.html import format_html
+
 class CustomUserAdmin(UserAdmin):
-    list_display = ('username', 'email', 'profile_pic', 'sex', 'commune', 'city', 'interests', 'is_active', 'is_staff', 'is_superuser', 'last_login', 'last_ip', 'device_fingerprint')
+    list_display = (
+        'username', 'email', 'profile_pic_preview', 'profile_pic_size_ko',
+        'sex', 'commune', 'city', 'interests',
+        'is_active', 'is_staff', 'is_superuser', 'last_login', 'last_ip', 'device_fingerprint'
+    )
+
+    # Affiche un aperçu de l'image profil
+    def profile_pic_preview(self, obj):
+        if obj.profile_pic:
+            return format_html('<img src="{}" width="50" height="50" />', obj.profile_pic.url)
+        return "Pas d'image"
+    profile_pic_preview.short_description = "Image de profil"
+
+    # Taille de l'image de profil
+    def profile_pic_size_ko(self, obj):
+        if obj.profile_pic and hasattr(obj.profile_pic, 'size'):
+            return f"{obj.profile_pic.size / 1024:.1f} Ko"
+        return "Aucune image"
+    profile_pic_size_ko.short_description = "Taille image"
 
     # Formulaire de création d'un utilisateur
     add_fieldsets = (
@@ -29,7 +77,6 @@ class CustomUserAdmin(UserAdmin):
         (None, {'fields': ('last_ip', 'device_fingerprint', 'sex', 'commune', 'city', 'interests')}),
     )
 
-# Pour afficher des informations sur les utilisateurs en ligne
     def changelist_view(self, request, extra_context=None):
         online_users = get_online_users()
         extra_context = extra_context or {}
@@ -40,16 +87,33 @@ class CustomUserAdmin(UserAdmin):
 admin.site.register(CustomUser, CustomUserAdmin)
 
 
-
-
-
-
-
+from django.contrib import admin
+from django.utils.html import format_html
+from .models import Store
 
 class StoreAdmin(admin.ModelAdmin):
-    prepopulated_fields = {"slug": ("name",)}
+    prepopulated_fields = {"slug": ("name",)}  # Slug auto-généré
+    list_display = (
+        'name', 'owner', 'typestore', 'categorystore', 
+        'is_active', 'thumbnail_preview', 'thumbnail_size_ko', 'created_at'
+    )
+    search_fields = ('name', 'owner__username')
+    list_filter = ('is_active', 'apply_commission', 'typestore', 'categorystore')
+
+    def thumbnail_preview(self, obj):
+        if obj.thumbnail:
+            return format_html('<img src="{}" width="50" height="50" />', obj.thumbnail.url)
+        return "Pas d'image"
+    thumbnail_preview.short_description = 'Aperçu image'
+
+    def thumbnail_size_ko(self, obj):
+        if obj.thumbnail and hasattr(obj.thumbnail, 'size'):
+            return f"{obj.thumbnail.size / 1024:.1f} Ko"
+        return "Aucune image"
+    thumbnail_size_ko.short_description = 'Taille image'
 
 admin.site.register(Store, StoreAdmin)
+
 
 class TypestoreAdmin(admin.ModelAdmin):
     list_display = ('nom',)
@@ -86,7 +150,7 @@ class PhotoInline(admin.TabularInline):  # Tu peux aussi utiliser StackInline si
 
 class ProductAdmin(admin.ModelAdmin):
     # Définition des champs à afficher dans la liste des produits
-    list_display = ('name', 'category', 'price', 'price_with_commission', 'stock', 'image_tag', 'created_at')
+    list_display = ('name', 'category', 'price', 'price_with_commission', 'stock',  'image_tag', 'image_size_ko', 'image_galerie_size_ko','created_at')
 
     # Filtres dans l'interface d'administration
     list_filter = ('category', 'price', 'stock', 'created_at')

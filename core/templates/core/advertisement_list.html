@@ -1,7 +1,22 @@
 {% extends 'base.html' %}
 {% load custom_filters %}
 {% load static %}
+{% block meta_tags %}
+<meta property="og:title" content="{{ ad.title }}" />
+<meta property="og:description" content="{{ ad.description|truncatewords:20 }}" />
 
+{% if ad.thumbnail %}
+    <meta property="og:image" content="{{ ad.thumbnail.url }}" />
+{% else %}
+    <meta property="og:image" content="{% static 'img/logozando2.png' %}" />
+{% endif %}
+
+<meta property="og:url" content="{{ request.build_absolute_uri }}" />
+<meta property="og:type" content="website" />
+<meta name="twitter:card" content="summary_large_image" />
+
+
+{% endblock %}
 {% block content %}
 {% if no_ads_message %}
 <div class="alert alert-warning text-center mt-4">
@@ -95,12 +110,39 @@
                             </a>
                             <a href="#" onclick="recordShare(event, {{ ad.id }}, 'facebook')" data-url="{{ ad_absolute_urls|get_item:ad.id }}">
                                 <img src="{% static 'img/fb2.png' %}" class="w-10 h-10">
-                            </a>                            
-                            
+                            </a>
                         </div>
                     </form>
                 </div>
             </div>
+            
+            <script>
+            function openSharePopup(adId) {
+                document.getElementById(`share-popup-${adId}`).classList.remove('hidden');
+            }
+            
+            function closeSharePopup(adId) {
+                document.getElementById(`share-popup-${adId}`).classList.add('hidden');
+            }
+            
+            function recordShare(event, adId, network) {
+                event.preventDefault();
+                const form = document.getElementById(`share-form-${adId}`);
+                document.getElementById(`social-network-input-${adId}`).value = network;
+                form.submit();
+            
+                // Ouvre la fenêtre de partage selon le réseau
+                const url = event.currentTarget.getAttribute('data-url');
+                let shareUrl = '';
+                if (network === 'whatsapp') {
+                    shareUrl = `https://wa.me/?text=${encodeURIComponent(url)}`;
+                } else if (network === 'facebook') {
+                    shareUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`;
+                }
+                window.open(shareUrl, '_blank');
+            }
+            </script>
+            
 
             <div class="mt-4 flex justify-between items-center text-gray-500">
                 <div>

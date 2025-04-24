@@ -8,6 +8,7 @@
     <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
     <title>LUSHI_MARCHE</title>
     <link rel="stylesheet" href="/src/styles.css">
+    {% block meta_tags %}{% endblock %}
     {% tailwind_css %}
 </head>
 <body class="bg-gray-100">
@@ -64,19 +65,22 @@
             <a href="{% url 'list_product' %}" class="block px-4 py-2 text-white hover:bg-gray-700">Liste produits </a>
         </li>
         <li>
+            <a href="{% url 'list_product' %}" class="block px-4 py-2 text-white hover:bg-gray-700">Liste produits </a>
+        </li>
+        <li>
             <a href="{% url 'list_store' %}" class="block px-4 py-2 text-white hover:bg-gray-700">Liste stores (magasins)</a>
         </li>
         <li>
             <a href="{% url 'creer_commande' %}" class="block px-4 py-2 text-white hover:bg-gray-700">Commander une livraison</a>
         </li>
         <li>
-            <a href="{% url 'video_list' %}" class="block px-4 py-2 text-white hover:bg-gray-700">Guide video</a>
+            <a href="{% url 'video_list' %}" class="block px-4 py-2 text-white hover:bg-gray-700">Guide vidéo</a>
         </li>
         <li>
-            <a href="{% url 'search_stores' %}" class="block px-4 py-2 text-white hover:bg-gray-700">geolocalise store</a>
+            <a href="{% url 'search_stores' %}" class="block px-4 py-2 text-white hover:bg-gray-700">géolocalise store</a>
         </li>
         <li>
-            <a href="{% url 'search_products' %}" class="block px-4 py-2 text-white hover:bg-gray-700">geolocalise product</a>
+            <a href="{% url 'search_products' %}" class="block px-4 py-2 text-white hover:bg-gray-700">géolocalise product</a>
         </li>
     </ul>
 </div>
@@ -136,13 +140,13 @@
                         <a href="{% url 'creer_commande' %}" class="block px-4 py-2 text-white hover:bg-gray-700">Commander une livraison</a>
                     </li>
                     <li>
-                        <a href="{% url 'video_list' %}" class="block px-4 py-2 text-white hover:bg-gray-700">Guide video</a>
+                        <a href="{% url 'video_list' %}" class="block px-4 py-2 text-white hover:bg-gray-700">Guide vidéo</a>
                     </li>
                     <li>
-                        <a href="{% url 'search_stores' %}" class="block px-4 py-2 text-white hover:bg-gray-700">geolocalise store</a>
+                        <a href="{% url 'search_stores' %}" class="block px-4 py-2 text-white hover:bg-gray-700">géolocalise store</a>
                     </li>
                     <li>
-                        <a href="{% url 'search_products' %}" class="block px-4 py-2 text-white hover:bg-gray-700">geolocalise produit</a>
+                        <a href="{% url 'search_products' %}" class="block px-4 py-2 text-white hover:bg-gray-700">géolocalise produit</a>
                     </li>
                 </ul>
             </div>
@@ -225,9 +229,10 @@
                         <li><a href="{% url 'list_store' %}" class="text-gray-400 hover:text-white">Liste Store (magasins)</a></li>
                         <li><a href="{% url 'creer_commande' %}" class="text-gray-400 hover:text-white">Commander une livraison</a></li>
                         <li><a href="{% url 'advertisement_list' %}" class="text-gray-400 hover:text-white">Pub</a></li>
-                        <li><a href="{% url 'search_stores' %}" class="text-gray-400 hover:text-white">geolocalise store</a></li>
-                        <li><a href="{% url 'search_products' %}" class="text-gray-400 hover:text-white">geolocalise produit</a></li>
-                        
+                        <li><a href="{% url 'search_stores' %}" class="text-gray-400 hover:text-white">géolocalise store</a></li>
+                        <li><a href="{% url 'search_products' %}" class="text-gray-400 hover:text-white">géolocalise produit</a></li>
+                        <li><a href="{% url 'video_list' %}" class="text-gray-400 hover:text-white">Guide vidéo</a></li>
+                        <li><a href="{% url 'contact' %}" class="text-gray-400 hover:text-white">Contact</a></li>
                     </ul>
                 </div>
                 <div class="md:w-1/3">
