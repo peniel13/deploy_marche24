@@ -29,7 +29,7 @@ SECRET_KEY = 'django-insecure-3c64!blj_^b7h67=coe1r_o)7iy^^p%i9=sme6tj(q%1rpc_3)
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['13.247.101.206','127.0.0.1','lushimarché.com','www.lushimarché.com','xn--lushimarch-k7a.com','www.xn--lushimarch-k7a.com',]
+ALLOWED_HOSTS = ['13.247.101.206','127.0.0.1','lushimarche.com','www.lushimarche.com',]
     
     
     
