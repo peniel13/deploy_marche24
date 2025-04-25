@@ -32,7 +32,10 @@ DEBUG = True
 ALLOWED_HOSTS = ['13.247.101.206','127.0.0.1','lushimarche.com','www.lushimarche.com',]
     
     
-# settings.py
+CSRF_TRUSTED_ORIGINS = [
+    "https://lushimarche.com",
+    "https://www.lushimarche.com",  # ajoute aussi la version avec www si nécessaire
+]
    
 
 
