@@ -32,7 +32,9 @@ DEBUG = True
 ALLOWED_HOSTS = ['13.247.101.206','127.0.0.1','lushimarche.com','www.lushimarche.com',]
     
     
-    
+# settings.py
+USE_X_FORWARDED_HOST = True
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')    
 
 
 # Application definition
@@ -67,6 +69,7 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     "django_browser_reload.middleware.BrowserReloadMiddleware",
     'core.middleware.ActiveUserMiddleware',
+    'django.middleware.csrf.CsrfViewMiddleware',
     
 ]
 
