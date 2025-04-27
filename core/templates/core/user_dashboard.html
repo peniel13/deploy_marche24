@@ -2,14 +2,24 @@
 
 {% block content %}
 
-<h2 class="text-center text-3xl font-bold mb-6">Tableau de bord ({{ request.user.username}} 👑) </h2>
+<div class="text-center mt-8 mb-6">
+    {% if user.profile_pic %}
+        <img class="h-32 w-32 rounded-full mx-auto mb-4" src="{{ user.profile_pic.url }}" alt="Profile Picture">
+    {% else %}
+        <img class="h-32 w-32 rounded-full mx-auto mb-4" src="https://bootdey.com/img/Content/avatar/avatar7.png" alt="Default Profile Picture">
+    {% endif %}
 
-<div class="text-center">
-  <p class="text-green-500 font-bold text-lg">🏆 Points disponibles: {{ total_points }}</p>
-  <p class="text-blue-500 font-bold text-lg">💵 Valeur en dollars: {{ total_points }} Point(s) =  ${{ total_in_usd|floatformat:2 }}</p>  <!-- Afficher la valeur en dollars -->
-  <p class="text-red-500">🔥 Points dépensés : {{ total_spent_points }}</p>
-  
+    <h2 class="text-3xl font-bold">Tableau de bord ({{ request.user.username }} 👑)</h2>
 </div>
+
+<div class="text-center mb-8">
+    <p class="text-green-500 font-bold text-lg">🏆 Points disponibles: {{ total_points }}</p>
+    <p class="text-blue-500 font-bold text-lg">
+        💵 Valeur en dollars: {{ total_points }} Point(s) = ${{ total_in_usd|floatformat:2 }}
+    </p>
+    <p class="text-red-500">🔥 Points dépensés : {{ total_spent_points }}</p>
+</div>
+
 
 
 

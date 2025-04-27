@@ -8,24 +8,33 @@ def get_or_create_cart(user):
 
 # utils.py
 
-from hashlib import sha256
-from django.http import HttpRequest
+# from hashlib import sha256
+# from django.http import HttpRequest
 
-def get_client_ip(request: HttpRequest) -> str:
-    """Récupère l'IP réelle de l'utilisateur."""
-    x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
-    if x_forwarded_for:
-        ip = x_forwarded_for.split(',')[0]
-    else:
-        ip = request.META.get('REMOTE_ADDR')
-    return ip
+# def get_client_ip(request: HttpRequest) -> str:
+#     """Récupère l'IP réelle de l'utilisateur."""
+#     x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
+#     if x_forwarded_for:
+#         ip = x_forwarded_for.split(',')[0]
+#     else:
+#         ip = request.META.get('REMOTE_ADDR')
+#     return ip
 
-def get_device_fingerprint(request: HttpRequest) -> str:
-    """Génère une empreinte unique pour l'appareil."""
-    user_agent = request.META.get('HTTP_USER_AGENT', '')  # User agent de l'utilisateur
-    ip = get_client_ip(request)  # Récupère l'IP
-    fingerprint = f"{user_agent}{ip}"  # Combine l'IP et l'user agent pour générer une empreinte
-    return sha256(fingerprint.encode()).hexdigest()  # Retourne l'empreinte hashée
+# def get_device_fingerprint(request: HttpRequest) -> str:
+#     """Génère une empreinte unique pour l'appareil."""
+#     user_agent = request.META.get('HTTP_USER_AGENT', '')  # User agent de l'utilisateur
+#     ip = get_client_ip(request)  # Récupère l'IP
+#     fingerprint = f"{user_agent}{ip}"  # Combine l'IP et l'user agent pour générer une empreinte
+#     return sha256(fingerprint.encode()).hexdigest()  # Retourne l'empreinte hashée
+
+# def get_client_ip(request):
+#     x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
+#     if x_forwarded_for:
+#         ip = x_forwarded_for.split(',')[0]
+#     else:
+#         ip = request.META.get('REMOTE_ADDR')
+#     return ip
+import hashlib
 
 def get_client_ip(request):
     x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
@@ -34,6 +43,17 @@ def get_client_ip(request):
     else:
         ip = request.META.get('REMOTE_ADDR')
     return ip
+
+def get_device_fingerprint(request):
+    user_agent = request.META.get('HTTP_USER_AGENT', '')
+    accept_language = request.META.get('HTTP_ACCEPT_LANGUAGE', '')
+    accept_encoding = request.META.get('HTTP_ACCEPT_ENCODING', '')
+    connection = request.META.get('HTTP_CONNECTION', '')
+    ip_address = get_client_ip(request)
+
+    # On combine plusieurs infos pour éviter les doublons accidentels
+    raw_fingerprint = f"{user_agent}|{accept_language}|{accept_encoding}|{connection}|{ip_address}"
+    return hashlib.sha256(raw_fingerprint.encode()).hexdigest()
 
 from django.contrib.auth import get_user_model
 from django.core.cache import cache

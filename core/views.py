@@ -14,58 +14,58 @@ from .utils import get_client_ip, get_device_fingerprint
 from django.shortcuts import render, redirect
 from django.contrib import messages
 from .forms import RegisterForm
-def get_client_ip(request):
-    x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
-    if x_forwarded_for:
-        ip = x_forwarded_for.split(',')[0]
-    else:
-        ip = request.META.get('REMOTE_ADDR')
-    return ip
+# def get_client_ip(request):
+#     x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
+#     if x_forwarded_for:
+#         ip = x_forwarded_for.split(',')[0]
+#     else:
+#         ip = request.META.get('REMOTE_ADDR')
+#     return ip
 
-import hashlib
+# import hashlib
 
-def get_device_fingerprint(request):
-    # Utiliser l'agent utilisateur pour générer un hash
-    user_agent = request.META.get('HTTP_USER_AGENT', '')
-    return hashlib.sha256(user_agent.encode()).hexdigest()
+# def get_device_fingerprint(request):
+#     # Utiliser l'agent utilisateur pour générer un hash
+#     user_agent = request.META.get('HTTP_USER_AGENT', '')
+#     return hashlib.sha256(user_agent.encode()).hexdigest()
 
-def signup(request):
-    form = RegisterForm()
+# def signup(request):
+#     form = RegisterForm()
 
-    if request.method == 'POST':
-        form = RegisterForm(request.POST)
+#     if request.method == 'POST':
+#         form = RegisterForm(request.POST)
         
-        # Récupérer l'IP réelle de l'utilisateur
-        client_ip = get_client_ip(request)  # Obtenir l'IP réelle
-        # Récupérer l'empreinte de l'appareil
-        device_fingerprint = get_device_fingerprint(request)  # Obtenir l'empreinte de l'appareil
+#         # Récupérer l'IP réelle de l'utilisateur
+#         client_ip = get_client_ip(request)  # Obtenir l'IP réelle
+#         # Récupérer l'empreinte de l'appareil
+#         device_fingerprint = get_device_fingerprint(request)  # Obtenir l'empreinte de l'appareil
 
-        # Vérifier si un utilisateur avec la même empreinte de l'appareil ou la même IP existe
-        if CustomUser.objects.filter(device_fingerprint=device_fingerprint).exists():
-            messages.error(request, "Vous ne pouvez pas créer plusieurs comptes depuis cet appareil.")
-            return render(request, "core/signup.html", {"form": form})
+#         # Vérifier si un utilisateur avec la même empreinte de l'appareil ou la même IP existe
+#         if CustomUser.objects.filter(device_fingerprint=device_fingerprint).exists():
+#             messages.error(request, "Vous ne pouvez pas créer plusieurs comptes depuis cet appareil.")
+#             return render(request, "core/signup.html", {"form": form})
 
-        # Vérifier si un utilisateur avec la même IP existe
-        if CustomUser.objects.filter(last_ip=client_ip).exists():
-            messages.error(request, "Votre IP réelle indique que vous avez déjà un compte.")
-            return render(request, "core/signup.html", {"form": form})
+#         # Vérifier si un utilisateur avec la même IP existe
+#         if CustomUser.objects.filter(last_ip=client_ip).exists():
+#             messages.error(request, "Votre IP réelle indique que vous avez déjà un compte.")
+#             return render(request, "core/signup.html", {"form": form})
 
-        # Valider le formulaire, y compris le captcha
-        if form.is_valid():
-            user = form.save(commit=False)
-            user.last_ip = client_ip  # Enregistrer l'IP de l'utilisateur
-            user.device_fingerprint = device_fingerprint  # Enregistrer l'empreinte de l'appareil
-            user.save()
-            messages.success(request, "Compte créé avec succès !")
-            return redirect("signin")
-        else:
-            # Vérifier les erreurs du formulaire
-            for field, errors in form.errors.items():
-                for error in errors:
-                    messages.error(request, f"{field}: {error}")
+#         # Valider le formulaire, y compris le captcha
+#         if form.is_valid():
+#             user = form.save(commit=False)
+#             user.last_ip = client_ip  # Enregistrer l'IP de l'utilisateur
+#             user.device_fingerprint = device_fingerprint  # Enregistrer l'empreinte de l'appareil
+#             user.save()
+#             messages.success(request, "Compte créé avec succès !")
+#             return redirect("signin")
+#         else:
+#             # Vérifier les erreurs du formulaire
+#             for field, errors in form.errors.items():
+#                 for error in errors:
+#                     messages.error(request, f"{field}: {error}")
 
-    context = {"form": form}
-    return render(request, "core/signup.html", context)
+#     context = {"form": form}
+#     return render(request, "core/signup.html", context)
 
 
 # def signup(request):
@@ -85,6 +85,47 @@ def signup(request):
 
 #     context = {"form": form}
 #     return render(request, "core/signup.html", context)
+from .utils import get_client_ip, get_device_fingerprint
+from django.shortcuts import render, redirect
+from django.contrib import messages
+from .forms import RegisterForm
+from .models import CustomUser  # Assure-toi d'importer ton modèle utilisateur
+
+def signup(request):
+    form = RegisterForm()
+
+    if request.method == 'POST':
+        form = RegisterForm(request.POST)
+        client_ip = get_client_ip(request)
+        device_fingerprint = get_device_fingerprint(request)
+
+        # AVANT de bloquer, on vérifie que l'empreinte ET l'IP sont liées à des comptes ACTIVÉS.
+        existing_device = CustomUser.objects.filter(device_fingerprint=device_fingerprint, is_active=True).exists()
+        existing_ip = CustomUser.objects.filter(last_ip=client_ip, is_active=True).exists()
+
+        if existing_device:
+            messages.error(request, "Cet appareil a déjà été utilisé pour créer un compte.")
+            return render(request, "core/signup.html", {"form": form})
+
+        if existing_ip:
+            messages.error(request, "Un compte existe déjà avec cette adresse IP.")
+            return render(request, "core/signup.html", {"form": form})
+
+        if form.is_valid():
+            user = form.save(commit=False)
+            user.last_ip = client_ip
+            user.device_fingerprint = device_fingerprint
+            user.save()
+            messages.success(request, "Compte créé avec succès !")
+            return redirect("signin")
+        else:
+            # Affiche les erreurs du formulaire
+            for field, errors in form.errors.items():
+                for error in errors:
+                    messages.error(request, f"{field}: {error}")
+
+    context = {"form": form}
+    return render(request, "core/signup.html", context)
 
 
 def signin (request):
