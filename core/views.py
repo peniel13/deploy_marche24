@@ -89,43 +89,38 @@ from .utils import get_client_ip, get_device_fingerprint
 from django.shortcuts import render, redirect
 from django.contrib import messages
 from .forms import RegisterForm
-from .models import CustomUser  # Assure-toi d'importer ton modèle utilisateur
+from .models import CustomUser
 
 def signup(request):
     form = RegisterForm()
 
     if request.method == 'POST':
         form = RegisterForm(request.POST)
-        client_ip = get_client_ip(request)
         device_fingerprint = get_device_fingerprint(request)
 
-        # AVANT de bloquer, on vérifie que l'empreinte ET l'IP sont liées à des comptes ACTIVÉS.
+        # Vérifier si un utilisateur avec ce fingerprint existe déjà
         existing_device = CustomUser.objects.filter(device_fingerprint=device_fingerprint, is_active=True).exists()
-        existing_ip = CustomUser.objects.filter(last_ip=client_ip, is_active=True).exists()
 
         if existing_device:
             messages.error(request, "Cet appareil a déjà été utilisé pour créer un compte.")
             return render(request, "core/signup.html", {"form": form})
 
-        if existing_ip:
-            messages.error(request, "Un compte existe déjà avec cette adresse IP.")
-            return render(request, "core/signup.html", {"form": form})
-
         if form.is_valid():
             user = form.save(commit=False)
-            user.last_ip = client_ip
             user.device_fingerprint = device_fingerprint
+            user.last_ip = get_client_ip(request)  # Toujours garder l'IP si tu veux pour info
             user.save()
             messages.success(request, "Compte créé avec succès !")
             return redirect("signin")
         else:
-            # Affiche les erreurs du formulaire
+            # Afficher les erreurs du formulaire
             for field, errors in form.errors.items():
                 for error in errors:
                     messages.error(request, f"{field}: {error}")
 
     context = {"form": form}
     return render(request, "core/signup.html", context)
+
 
 
 def signin (request):

@@ -37,6 +37,7 @@ def get_or_create_cart(user):
 import hashlib
 
 def get_client_ip(request):
+    """Récupère l'IP réelle de l'utilisateur (utile pour autre chose si besoin)."""
     x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
     if x_forwarded_for:
         ip = x_forwarded_for.split(',')[0]
@@ -45,15 +46,17 @@ def get_client_ip(request):
     return ip
 
 def get_device_fingerprint(request):
+    """Génère une empreinte fiable basée sur plusieurs caractéristiques du navigateur."""
     user_agent = request.META.get('HTTP_USER_AGENT', '')
     accept_language = request.META.get('HTTP_ACCEPT_LANGUAGE', '')
     accept_encoding = request.META.get('HTTP_ACCEPT_ENCODING', '')
     connection = request.META.get('HTTP_CONNECTION', '')
-    ip_address = get_client_ip(request)
+    referer = request.META.get('HTTP_REFERER', '')
+    accept = request.META.get('HTTP_ACCEPT', '')
 
-    # On combine plusieurs infos pour éviter les doublons accidentels
-    raw_fingerprint = f"{user_agent}|{accept_language}|{accept_encoding}|{connection}|{ip_address}"
+    raw_fingerprint = f"{user_agent}|{accept_language}|{accept_encoding}|{connection}|{referer}|{accept}"
     return hashlib.sha256(raw_fingerprint.encode()).hexdigest()
+
 
 from django.contrib.auth import get_user_model
 from django.core.cache import cache
