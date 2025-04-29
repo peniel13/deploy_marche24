@@ -3026,7 +3026,7 @@ from django.http import JsonResponse
 #     return render(request, 'core/list_product_reward.html', context)
 @login_required
 def list_product_rewards(request):
-    product_rewards = ProductPoints.objects.all()
+    product_rewards = ProductPoints.objects.all().order_by('-created_at')
     featured_products = product_rewards
     ad_popup = PopUpAdvertisement.objects.filter(is_active=True).first()
     favorite_stores = Store.objects.filter(favoritestore=True).order_by('-created_at')
@@ -3091,30 +3091,32 @@ from django.shortcuts import render, get_object_or_404
 from .models import ProductPoints, PointConversion
 @login_required
 def detail_product_reward(request, product_id):
-    product = ProductPoints.objects.get(id=product_id)
+    product = get_object_or_404(ProductPoints, id=product_id)
     user_points = UserPoints.objects.get(user=request.user)
 
     try:
-        conversion = PointConversion.objects.latest('id')  # Dernier taux défini
+        conversion = PointConversion.objects.latest('id')
         conversion_rate = conversion.conversion_rate
     except PointConversion.DoesNotExist:
-        conversion_rate = 0.5  # Valeur par défaut
+        conversion_rate = 0.5
 
-    # Convertir les points en valeur monétaire
     price_in_usd = product.points_required * conversion_rate
 
     if request.method == 'POST':
-        # Logique de paiement
-        if user_points and user_points.spend_points(product.points_required):
+        # Vérifie si l'utilisateur a assez de points
+        if user_points and user_points.points >= product.points_required:
+            user_points.spend_points(product.points_required)
             Purchase.objects.create(
                 user=request.user,
                 product=product,
                 points_used=product.points_required
             )
             messages.success(request, f"Achat de {product.name} effectué avec succès !")
-            return redirect('list_product_rewards')  # Redirection vers la liste des produits
         else:
             messages.error(request, "Vous n'avez pas assez de points pour effectuer cet achat.")
+        
+        # Redirige vers la liste quoi qu'il arrive (succès ou erreur)
+        return redirect('list_product_rewards')
 
     return render(request, 'core/detail_product_reward.html', {
         'product': product,
@@ -3122,6 +3124,7 @@ def detail_product_reward(request, product_id):
         'price_in_usd': price_in_usd,
         'spent_points': user_points.spent_points if user_points else 0,
     })
+
 
 # @login_required
 # def detail_product_reward(request, product_id):

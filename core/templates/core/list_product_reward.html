@@ -6,7 +6,7 @@
 
     <!-- Affichage du nom de l'utilisateur et de son compteur de points -->
     <div class="flex justify-between items-center mb-6">
-        <h1 class="text-2xl font-semibold">Bonjour, {{ request.user.username }}</h1>
+        <h1 class="text-2xl font-semibold">Salut, {{ request.user.username }}</h1>
         <div class="text-xl font-medium">
             Points de fidélité: <span class="font-bold">{{ user_points }}</span>
         </div>
@@ -52,7 +52,7 @@
                   <h1 class="font-semibold text-xl text-primary pt-2 text-center">{{ product_reward.name }}</h1>
                   <h2 class="font-medium text-lg text-center">Prix: {{ product_reward.points_required }} points</h2>
                   <p class="text-blue-600 font-semibold text-md text-center">
-                    💵 Valeur monétaire: ${{ product_reward.usd_price|floatformat:2 }}
+                    💵 Valeur monétaire: ${{ product_reward.product.usd_price|floatformat:2 }}
                   </p>
                 </div>
       
@@ -70,19 +70,25 @@
             </div>
       
             <!-- Popup confirmation -->
-            <div id="confirmationPopup_{{ product_reward.id }}" class="fixed inset-0 bg-gray-800 bg-opacity-50 flex items-center justify-center hidden">
-              <div class="bg-white p-8 rounded-xl w-96">
-                <h2 class="text-xl font-semibold text-center">Confirmer l'achat</h2>
-                <p class="my-4 text-center">Vous allez acheter {{ product_reward.product.name }} pour {{ product_reward.points_required }} points. Voulez-vous confirmer cet achat ?</p>
-                <div class="flex justify-between">
-                  <button class="px-6 py-2 bg-gray-400 text-white rounded-lg" onclick="hidePopup({{ product_reward.id }})">Annuler</button>
-                  <form action="{% url 'buy_product' product_reward.id %}" method="POST">
-                    {% csrf_token %}
-                    <button type="submit" class="px-6 py-2 bg-green-600 text-white rounded-lg">Confirmer</button>
-                  </form>
+            <div id="confirmationPopupFeatured_{{ product_reward.id }}" class="fixed inset-0 bg-gray-800 bg-opacity-50 flex items-center justify-center hidden">
+                <div class="bg-white p-8 rounded-xl w-96">
+                  <h2 class="text-xl font-semibold text-center">Confirmer l'achat</h2>
+                  <p class="my-4 text-center">
+                    Vous allez acheter {{ product_reward.product.name }} pour {{ product_reward.points_required }} points.
+                    Voulez-vous confirmer cet achat ?
+                  </p>
+                  <div class="flex justify-between">
+                    <!-- Bouton Annuler -->
+                    <button class="px-6 py-2 bg-gray-400 text-white rounded-lg" onclick="hidePopupFeatured({{ product_reward.id }})">Annuler</button>
+              
+                    <!-- Formulaire de confirmation -->
+                    <form action="{% url 'buy_product' product_reward.id %}" method="POST">
+                      {% csrf_token %}
+                      <button type="submit" class="px-6 py-2 bg-green-600 text-white rounded-lg">Confirmer</button>
+                    </form>
+                  </div>
                 </div>
-              </div>
-            </div>
+              </div>              
       
             {% empty %}
             <p>Aucun produit de récompense trouvé pour cette recherche.</p>
@@ -327,7 +333,38 @@
     }
 
     // Afficher le popup de confirmation d'achat
-    function showPopup(productId) {
+     // Fonction pour les produits classiques
+  function showPopup(productId) {
+    document.getElementById(`confirmationPopup_${productId}`).classList.remove('hidden');
+}
+
+function hidePopup(productId) {
+    document.getElementById(`confirmationPopup_${productId}`).classList.add('hidden');
+}
+
+// Fonction pour les produits en vedette
+function showPopupFeatured(productId) {
+    document.getElementById(`confirmationPopupFeatured_${productId}`).classList.remove('hidden');
+}
+
+function hidePopupFeatured(productId) {
+    document.getElementById(`confirmationPopupFeatured_${productId}`).classList.add('hidden');
+}
+
+// Attache les événements aux boutons d'achat (produits normaux)
+document.querySelectorAll('[id^="buyButton_"]').forEach(button => {
+    button.addEventListener('click', function() {
+        const productId = this.id.replace('buyButton_', '');
+        // Vérifie si le produit est en vedette ou non
+        const isFeatured = document.getElementById(`confirmationPopupFeatured_${productId}`) !== null;
+        if (isFeatured) {
+            showPopupFeatured(productId);
+        } else {
+            showPopup(productId);
+        }
+    });
+});
+    {% comment %} function showPopup(productId) {
         document.getElementById('confirmationPopup_' + productId).classList.remove('hidden');
     }
 
@@ -342,6 +379,25 @@
         showPopup({{ product_reward.id }});
     });
     {% endfor %}
+
+    // Afficher le popup pour les produits scrollables
+function showPopupFeatured(productId) {
+    document.getElementById('confirmationPopupFeatured_' + productId).classList.remove('hidden');
+}
+
+// Cacher le popup pour les produits scrollables
+function hidePopupFeatured(productId) {
+    document.getElementById('confirmationPopupFeatured_' + productId).classList.add('hidden');
+}
+
+// Ajouter un événement au bouton d'achat pour chaque produit featured
+{% for product_reward in featured_products %}
+document.getElementById('buyButton_{{ product_reward.id }}').addEventListener('click', function() {
+    showPopupFeatured({{ product_reward.id }});
+});
+{% endfor %} {% endcomment %}
+
 </script>
 
+    
 {% endblock %}
