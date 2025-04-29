@@ -1655,7 +1655,7 @@ def store_detail(request, slug):
 
     # Récupérer les produits associés au store
     products = Product.objects.filter(store=store).order_by('-created_at')
-
+    featured_products = products
     # Calculer la moyenne des notes pour chaque produit
     for product in products:
         testimonials = Testimonialproduct.objects.filter(product=product)
@@ -1837,6 +1837,7 @@ def store_detail(request, slug):
         'rounded_rating': rounded_rating,
         'range_10': range(1, 11),
         'range_10': range(1, 11),
+        'featured_products': featured_products
     }
 
     return render(request, 'core/store_detail.html', context)

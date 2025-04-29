@@ -237,6 +237,7 @@ def list_product(request):
     # Récupère tous les produits de tous les magasins
     products = Product.objects.all().order_by('-created_at')
     favorite_stores = Store.objects.filter(favoritestore=True).order_by('-created_at')
+    featured_products = products
     # Filtrage par catégorie
     category_filter = request.GET.get('categorie', '')
     if category_filter:
@@ -313,6 +314,7 @@ def list_product(request):
         'range_10': range_10,  # Plage pour les étoiles
         'total_products': total_products,  # Nombre total de produits
         'total_categories': total_categories,  # Nombre total de catégories
+        'featured_products': featured_products 
     }
 
     return render(request, 'base/list_product.html', context)

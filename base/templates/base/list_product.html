@@ -108,15 +108,76 @@
         </div>
     </section>
 
-    <!-- Affichage des produits -->
+    {% comment %} scrolling {% endcomment %}
+
+    <section id="produits_scrollables" class="py-4 bg-gray-100">
+   
+        <p class="text-center mb-8">Faites défiler horizontalement pour découvrir vos articles ou services populaires.</p>
+      
+        <div class="overflow-x-auto px-4">
+          <div class="flex space-x-6 w-max">
+            {% for product in featured_products %}
+            <div class="flex-shrink-0 w-64 border-2 border-secondary bg-slate-100 text-black rounded-xl cursor-pointer 
+                        hover:scale-105 hover:shadow-lg transition-transform duration-300 ease-in-out flex flex-col h-full">
+              <!-- Image -->
+              <div>
+                <img src="{{ product.image.url }}" alt="{{ product.name }}" class="rounded-t-xl w-full h-40 object-cover"
+                     onclick="showImagePopup('{{ product.image.url }}')" />
+              </div>
+      
+              <!-- Contenu -->
+              <div class="flex flex-col justify-between flex-grow p-4 space-y-3">
+                <!-- Ajout au panier -->
+                <form id="add-to-cart-form-{{ product.id }}" action="{% url 'add_to_cart_ajax' product.id %}" method="POST">
+                  {% csrf_token %}
+                  <button type="submit" class="w-full px-4 py-2 bg-blue-500 text-white rounded-full text-sm hover:bg-blue-600 transition">
+                    Ajouter au panier
+                  </button>
+                </form>
+      
+                <!-- Nom et prix -->
+                <div class="text-center">
+                  <h1 class="font-semibold text-lg text-primary">{{ product.name }}</h1>
+                  <h2 class="font-medium text-md">{{ product.price_with_commission }} CDF{{ product.store.currency }}</h2>
+                </div>
+      
+                <!-- Étoiles et note -->
+                <div class="flex items-center justify-center space-x-2">
+                  <div class="flex text-yellow-500 text-sm">
+                    {% for i in range_10 %}
+                      {% if i <= product.average_rating %}
+                        &#9733;
+                      {% else %}
+                        &#9734;
+                      {% endif %}
+                    {% endfor %}
+                  </div>
+                  <p class="text-gray-500 text-xs">({{ product.average_rating|default:"0" }}/10)</p>
+                </div>
+      
+                <!-- Détails -->
+                <a href="{% url 'product_detail' product.id %}" class="block text-center mt-auto px-4 py-2 bg-blue-500 text-white rounded-full text-sm hover:bg-blue-600 transition">
+                  Voir les détails
+                </a>
+              </div>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+      
+       
+      </section>
+
     <section id="produits" class="py-16 bg-gray-100">
+        <p class="text-center mb-8">Faites défiler verticalement pour découvrir vos articles ou services  populaires.</p>
         <div class="flex flex-wrap gap-6 justify-center">
             {% for product in products %}
-            <div class="flex-shrink-0 border-2 border-secondary bg-slate-100 text-black rounded-xl mb-6 cursor-pointer 
-            hover:scale-105 hover:shadow-lg transition-transform duration-300 ease-linear w-64 h-full flex flex-col">
+            <div class="flex-shrink-0 border-2 border-secondary bg-slate-100 text-black rounded-xl mb-6 cursor-pointer
+            hover:scale-105 hover:shadow-lg transition-transform duration-300 ease-linear w-64 h-full flex flex-col 
+            basis-1/2 sm:basis-1/2 md:basis-auto">
                 <div>
                     <img src="{{ product.image.url }}" alt="{{ product.name }}" class="rounded-t-xl w-full h-40 object-cover" 
-                    onclick="showImagePopup('{{ product.image.url  }}')"/>
+                    onclick="showImagePopup('{{ product.image.url }}')" />
                 </div>
                 <div class="flex flex-col justify-between flex-grow p-4">
                     <!-- Formulaire d'ajout au panier -->
@@ -126,27 +187,27 @@
                             Ajouter au panier
                         </button>
                     </form>
-
+    
                     <!-- Nom du produit et prix -->
                     <div class="flex flex-col items-center my-4">
                         <h1 class="font-semibold text-xl text-primary pt-2 text-center">{{ product.name }}</h1>
                         <h2 class="font-medium text-lg text-center">{{ product.price_with_commission }} CDF{{ product.store.currency }}</h2>
                     </div>
-
+    
                     <!-- Affichage des étoiles de la note moyenne -->
                     <div class="flex items-center justify-center my-2">
                         <p class="text-yellow-500">
                             {% for i in range_10 %}
                                 {% if i <= product.average_rating %}
-                                    &#9733;  <!-- Étoile remplie -->
+                                    &#9733; <!-- Étoile remplie -->
                                 {% else %}
-                                    &#9734;  <!-- Étoile vide -->
+                                    &#9734; <!-- Étoile vide -->
                                 {% endif %}
                             {% endfor %}
                         </p>
                         <p class="text-gray-500 text-sm">Note moyenne: {{ product.average_rating|default:"0" }}/10</p>
                     </div>
-
+    
                     <!-- Bouton "Voir les détails" -->
                     <a href="{% url 'product_detail' product.id %}" class="px-6 py-2 bg-blue-500 text-white rounded-full text-lg hover:bg-blue-600 transition duration-300">
                         Voir les détails
@@ -211,6 +272,8 @@
         
     </section>
 </section>
+  
+  
 <section id="favorite_stores" class="py-16 bg-gray-100">
     <div class="max-w-6xl mx-auto text-center">
         <h2 class="text-3xl font-semibold mb-8">Les stores Populaires</h2>
