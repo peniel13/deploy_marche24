@@ -19,7 +19,7 @@
         </p>
     </div>
     <!-- Titre de la page -->
-    <h2 class="text-3xl font-bold mb-4">Explorer les produits achetables avec vos Points de fidélité</h2>
+    <h2 class="text-3xl font-bold mb-4">Explorer les produits ou services achetables avec vos Points de fidélité</h2>
 
     <!-- Formulaire de recherche -->
     <section id="search" class="mb-8">
@@ -31,7 +31,66 @@
             </button>
         </form>
     </section>
-
+    <section id="produits_scrollables_rewards" class="py-16 bg-gray-100">
+        <p class="text-center mb-8">Faites défiler horizontalement pour découvrir les produits ou services disponibles via vos points.</p>
+      
+        <div class="overflow-x-auto px-4">
+          <div class="flex space-x-6 w-max">
+            {% for product_reward in  featured_products  %}
+            <div class="flex-shrink-0 w-64 border-2 border-secondary bg-slate-100 text-black rounded-xl cursor-pointer hover:scale-95 hover:bg-slate-200 transition duration-200 ease-linear flex flex-col">
+              
+              <!-- Image -->
+              <div>
+                <img src="{{ product_reward.image.url }}" alt="{{ product_reward.product.name }}" class="rounded-t-xl w-full h-40 object-cover cursor-pointer" 
+                     onclick="showImagePopup('{{ product_reward.image.url }}')" />
+              </div>
+      
+              <!-- Contenu -->
+              <div class="flex flex-col justify-between flex-grow p-4">
+                <!-- Nom & Prix -->
+                <div class="flex flex-col items-center my-4">
+                  <h1 class="font-semibold text-xl text-primary pt-2 text-center">{{ product_reward.name }}</h1>
+                  <h2 class="font-medium text-lg text-center">Prix: {{ product_reward.points_required }} points</h2>
+                  <p class="text-blue-600 font-semibold text-md text-center">
+                    💵 Valeur monétaire: ${{ product_reward.usd_price|floatformat:2 }}
+                  </p>
+                </div>
+      
+                <!-- Actions -->
+                <div class="my-4 text-center flex flex-col items-center gap-3">
+                  <a href="{% url 'detail_product_reward' product_reward.id %}" class="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-400">
+                    Voir Détail
+                  </a>
+      
+                  <button id="buyButton_{{ product_reward.id }}" class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    Acheter
+                  </button>
+                </div>
+              </div>
+            </div>
+      
+            <!-- Popup confirmation -->
+            <div id="confirmationPopup_{{ product_reward.id }}" class="fixed inset-0 bg-gray-800 bg-opacity-50 flex items-center justify-center hidden">
+              <div class="bg-white p-8 rounded-xl w-96">
+                <h2 class="text-xl font-semibold text-center">Confirmer l'achat</h2>
+                <p class="my-4 text-center">Vous allez acheter {{ product_reward.product.name }} pour {{ product_reward.points_required }} points. Voulez-vous confirmer cet achat ?</p>
+                <div class="flex justify-between">
+                  <button class="px-6 py-2 bg-gray-400 text-white rounded-lg" onclick="hidePopup({{ product_reward.id }})">Annuler</button>
+                  <form action="{% url 'buy_product' product_reward.id %}" method="POST">
+                    {% csrf_token %}
+                    <button type="submit" class="px-6 py-2 bg-green-600 text-white rounded-lg">Confirmer</button>
+                  </form>
+                </div>
+              </div>
+            </div>
+      
+            {% empty %}
+            <p>Aucun produit de récompense trouvé pour cette recherche.</p>
+            {% endfor %}
+          </div>
+        </div>
+      </section>
+      
     <!-- Affichage des produits de récompense -->
     <section id="produits" class="py-16 bg-gray-100">
         <div class="flex flex-wrap gap-6 justify-center">

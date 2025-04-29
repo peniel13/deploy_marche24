@@ -749,7 +749,7 @@ class UserPoints(models.Model):
 from decimal import Decimal, ROUND_HALF_UP
 
 class PointConversion(models.Model):
-    conversion_rate = models.DecimalField(max_digits=5, decimal_places=5, default=Decimal('0.00143'))  # 1 point = 0.00143 USD
+    conversion_rate = models.DecimalField(max_digits=5, decimal_places=5, default=Decimal('0.00125'))  # 1 point = 0.00143 USD
 
     def __str__(self):
         return f"1 point = {self.conversion_rate} USD"

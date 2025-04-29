@@ -3027,6 +3027,7 @@ from django.http import JsonResponse
 @login_required
 def list_product_rewards(request):
     product_rewards = ProductPoints.objects.all()
+    featured_products = product_rewards
     ad_popup = PopUpAdvertisement.objects.filter(is_active=True).first()
     favorite_stores = Store.objects.filter(favoritestore=True).order_by('-created_at')
     range_10 = range(1, 11)
@@ -3083,6 +3084,7 @@ def list_product_rewards(request):
         'favorite_stores':favorite_stores,
         'range_10': range_10, 
         'ad_popup': ad_popup,
+        'featured_products': featured_products 
     })
 
 from django.shortcuts import render, get_object_or_404
@@ -5026,15 +5028,15 @@ def ad_comments(request, ad_slug):
             messages.error(request, "Vous avez déjà commenté cette publicité.")
         
          # Pagination : 6 commentaires par page
-    paginator = Paginator(comments, 4)  
-    page = request.GET.get('page')
+    # paginator = Paginator(comments, 4)  
+    # page = request.GET.get('page')
 
-    try:
-        comments = paginator.page(page)
-    except PageNotAnInteger:
-        comments = paginator.page(1)
-    except EmptyPage:
-        comments = paginator.page(paginator.num_pages)
+    # try:
+    #     comments = paginator.page(page)
+    # except PageNotAnInteger:
+    #     comments = paginator.page(1)
+    # except EmptyPage:
+    #     comments = paginator.page(paginator.num_pages)
 
     return render(request, 'core/ad_comments.html', {
         'ad': ad,
