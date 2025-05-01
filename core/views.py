@@ -3996,7 +3996,7 @@ def advertisement_list(request):
     favorite_stores = Store.objects.filter(favoritestore=True).order_by('-created_at')
     range_10 = range(1, 11)
     
-    ads = Advertisement.objects.all().order_by('-created_at')
+    ads = Advertisement.objects.filter(is_active=True).order_by('-created_at')
 
     if request.user.is_authenticated:
         user = request.user
@@ -4009,7 +4009,8 @@ def advertisement_list(request):
         user_city = (getattr(user, 'city', '') or '').lower()
         user_address = (getattr(user, 'address', '') or '').lower().split()
         user_keywords = (getattr(user, 'interests', '') or '').lower().split(',')
-
+        user_address_str = ' '.join(user_address)  # chaîne d'adresse en minuscule
+        user_keywords = [k.strip() for k in (user.interests or '').lower().split(',')]
         user_location = UserLocation.objects.filter(user=user).first()
         user_lat = float(user_location.latitude) if user_location and user_location.latitude else None
         user_lon = float(user_location.longitude) if user_location and user_location.longitude else None
@@ -4042,18 +4043,28 @@ def advertisement_list(request):
                     if user_city in ad_cities:
                         match_count += 1
 
-                if ad.target_keywords:
-                    total_conditions += 1
-                    ad_keywords = [k.strip().lower() for k in ad.target_keywords.split(',')]
-                    if any(k in user_keywords for k in ad_keywords):
-                        match_count += 1
+                # if ad.target_keywords:
+                #     total_conditions += 1
+                #     ad_keywords = [k.strip().lower() for k in ad.target_keywords.split(',')]
+                #     if any(k in user_keywords for k in ad_keywords):
+                #         match_count += 1
 
+                # if ad.target_address_keywords:
+                #     total_conditions += 1
+                #     ad_address_keywords = [k.strip().lower() for k in ad.target_address_keywords.split(',')]
+                #     if any(k in user_address for k in ad_address_keywords):
+                #         match_count += 1
                 if ad.target_address_keywords:
-                    total_conditions += 1
-                    ad_address_keywords = [k.strip().lower() for k in ad.target_address_keywords.split(',')]
-                    if any(k in user_address for k in ad_address_keywords):
-                        match_count += 1
+                     total_conditions += 1
+                     ad_address_keywords = [k.strip().lower() for k in ad.target_address_keywords.split(',')]
+                     if any(k in user_address_str for k in ad_address_keywords):
+                       match_count += 1
 
+                if ad.target_keywords:
+                     total_conditions += 1
+                     ad_keywords = [k.strip().lower() for k in ad.target_keywords.split(',')]
+                     if any(k in user_keywords for k in ad_keywords):
+                        match_count += 1
                 if ad.target_latitude and ad.target_longitude and ad.target_radius_km and user_lat and user_lon:
                     total_conditions += 1
                     distance = ((user_lat - float(ad.target_latitude))**2 + (user_lon - float(ad.target_longitude))**2) ** 0.5 * 111
@@ -4062,7 +4073,7 @@ def advertisement_list(request):
 
                 if total_conditions > 0 and match_count == total_conditions:
                     show_to_user = True
-
+           
             if show_to_user:
                 if ad.max_target_users:
                     with transaction.atomic():
@@ -4891,30 +4902,76 @@ def record_share(request, slug):
     return JsonResponse({'status': 'error', 'message': 'Déjà partagé'})
 
 
+from django.contrib import messages
+from django.shortcuts import get_object_or_404, redirect
+from django.contrib.auth.decorators import login_required
+from .models import Advertisement, Share, UserPoints
 
 @login_required
 def ad_share(request, ad_slug):
     ad = get_object_or_404(Advertisement, slug=ad_slug)
 
-    # Vérifier si l'utilisateur a déjà partagé la publicité
+    # Si la pub est déjà désactivée, empêcher toute action
+    if not ad.is_active:
+        messages.error(request, "Cette publicité n'est plus disponible.")
+        return redirect('core:advertisement_detail', slug=ad_slug)
+
+    # Vérifier si le nombre maximal de partages est atteint
+    if ad.max_shares is not None and ad.shares_count >= ad.max_shares:
+        ad.is_active = False
+        ad.save()
+        messages.error(request, "Le nombre maximal de partages est atteint. Cette publicité est maintenant désactivée.")
+        return redirect('core:advertisement_detail', slug=ad_slug)
+
+    # Vérifier si l'utilisateur a déjà partagé cette publicité
     if Share.objects.filter(user=request.user, ad=ad).exists():
-        messages.error(request, "Vous avez déjà partagé cette publicité,merci de le faire à nouveau.")
+        messages.error(request, "Vous avez déjà partagé cette publicité.")
     else:
         # Créer une nouvelle entrée de partage
         Share.objects.create(user=request.user, ad=ad)
 
-        # Ajouter les points pour le partage (5 points)
+        # Ajouter des points
         user_points = UserPoints.objects.get(user=request.user)
         user_points.points += 3
         user_points.save()
 
-        # Optionnel : Mettre à jour un compteur de partages dans l'objet Advertisement (si tu veux)
+        # Incrémenter le compteur de partages
         ad.shares_count += 1
+
+        # Vérifier à nouveau après incrémentation si on atteint la limite
+        if ad.max_shares is not None and ad.shares_count >= ad.max_shares:
+            ad.is_active = False  # Désactivation automatique
+            messages.success(request, "Vous avez partagé cette publicité. Elle est maintenant désactivée car la limite a été atteinte.")
+        else:
+            messages.success(request, "Vous avez partagé cette publicité et gagné 3 points !")
+
         ad.save()
 
-        messages.success(request, "Vous avez partagé cette publicité et gagné 3 points!")
-
     return redirect('core:advertisement_detail', slug=ad_slug)
+
+# @login_required
+# def ad_share(request, ad_slug):
+#     ad = get_object_or_404(Advertisement, slug=ad_slug)
+
+#     # Vérifier si l'utilisateur a déjà partagé la publicité
+#     if Share.objects.filter(user=request.user, ad=ad).exists():
+#         messages.error(request, "Vous avez déjà partagé cette publicité,merci de le faire à nouveau.")
+#     else:
+#         # Créer une nouvelle entrée de partage
+#         Share.objects.create(user=request.user, ad=ad)
+
+#         # Ajouter les points pour le partage (5 points)
+#         user_points = UserPoints.objects.get(user=request.user)
+#         user_points.points += 3
+#         user_points.save()
+
+#         # Optionnel : Mettre à jour un compteur de partages dans l'objet Advertisement (si tu veux)
+#         ad.shares_count += 1
+#         ad.save()
+
+#         messages.success(request, "Vous avez partagé cette publicité et gagné 3 points!")
+
+#     return redirect('core:advertisement_detail', slug=ad_slug)
 
 
 
@@ -4928,58 +4985,109 @@ from .models import Advertisement, AdInteraction, UserPoints
 
 @login_required
 def handle_like(request, ad_id):
-    ad = get_object_or_404(Advertisement, id=ad_id)
+    ad = get_object_or_404(Advertisement, id=ad_id, is_active=True)  # on ne peut liker que les pubs actives
     user = request.user
 
-    # Vérifier si l'utilisateur a déjà interagi avec cette publicité
     interaction = AdInteraction.objects.filter(user=user, ad=ad).first()
 
     if interaction:
-        # Si l'interaction existe déjà, gérer le "like" / "dislike"
         if interaction.interaction_type == 'like':
-            # Si c'est un "like", on le transforme en "dislike" (on supprime le like)
-            interaction.delete()  # Supprimer le "like"
-            ad.likes_count -= 1  # Réduire le compteur de likes
+            interaction.delete()
+            ad.likes_count -= 1
             ad.save()
 
-            # Réduire de 1 point l'utilisateur
             user_points = user.userpoints
             user_points.points -= 1
             user_points.save()
 
-            # Message de notification pour la réduction des points
             messages.success(request, "Vous avez perdu 1 point en retirant votre like (dislike).")
 
         else:
-            # Si c'était un "dislike", on le transforme en "like"
             interaction.interaction_type = 'like'
             interaction.save()
-            ad.likes_count += 1  # Augmenter le compteur de likes
+
+            ad.likes_count += 1
             ad.save()
 
-            # Ajouter 1 point à l'utilisateur
+            # ✅ Vérifie la désactivation après le like
+            ad.check_deactivation_by_likes()
+
             user_points = user.userpoints
             user_points.points += 1
             user_points.save()
 
-            # Message de notification pour le like
             messages.success(request, "Vous avez gagné 1 point pour avoir aimé cette publicité !")
 
     else:
-        # Si aucune interaction, créer un "like"
         AdInteraction.objects.create(user=user, ad=ad, interaction_type='like')
         ad.likes_count += 1
         ad.save()
 
-        # Ajouter 1 point pour le "like"
+        # ✅ Vérifie la désactivation après le like
+        ad.check_deactivation_by_likes()
+
         user_points = user.userpoints
         user_points.points += 1
         user_points.save()
 
-        # Message de notification pour le like
         messages.success(request, "Vous avez gagné 1 point pour avoir aimé cette publicité !")
 
     return redirect('advertisement_list')
+
+# @login_required
+# def handle_like(request, ad_id):
+#     ad = get_object_or_404(Advertisement, id=ad_id)
+#     user = request.user
+
+#     # Vérifier si l'utilisateur a déjà interagi avec cette publicité
+#     interaction = AdInteraction.objects.filter(user=user, ad=ad).first()
+
+#     if interaction:
+#         # Si l'interaction existe déjà, gérer le "like" / "dislike"
+#         if interaction.interaction_type == 'like':
+#             # Si c'est un "like", on le transforme en "dislike" (on supprime le like)
+#             interaction.delete()  # Supprimer le "like"
+#             ad.likes_count -= 1  # Réduire le compteur de likes
+#             ad.save()
+
+#             # Réduire de 1 point l'utilisateur
+#             user_points = user.userpoints
+#             user_points.points -= 1
+#             user_points.save()
+
+#             # Message de notification pour la réduction des points
+#             messages.success(request, "Vous avez perdu 1 point en retirant votre like (dislike).")
+
+#         else:
+#             # Si c'était un "dislike", on le transforme en "like"
+#             interaction.interaction_type = 'like'
+#             interaction.save()
+#             ad.likes_count += 1  # Augmenter le compteur de likes
+#             ad.save()
+
+#             # Ajouter 1 point à l'utilisateur
+#             user_points = user.userpoints
+#             user_points.points += 1
+#             user_points.save()
+
+#             # Message de notification pour le like
+#             messages.success(request, "Vous avez gagné 1 point pour avoir aimé cette publicité !")
+
+#     else:
+#         # Si aucune interaction, créer un "like"
+#         AdInteraction.objects.create(user=user, ad=ad, interaction_type='like')
+#         ad.likes_count += 1
+#         ad.save()
+
+#         # Ajouter 1 point pour le "like"
+#         user_points = user.userpoints
+#         user_points.points += 1
+#         user_points.save()
+
+#         # Message de notification pour le like
+#         messages.success(request, "Vous avez gagné 1 point pour avoir aimé cette publicité !")
+
+#     return redirect('advertisement_list')
 
 # @login_required
 # def handle_like(request, ad_id):
@@ -5064,27 +5172,26 @@ from django.http import JsonResponse
 from .models import Advertisement, Share, AdInteraction, UserPoints
 @login_required
 def share_ad(request, ad_slug):
-    ad = get_object_or_404(Advertisement, slug=ad_slug)
+    ad = get_object_or_404(Advertisement, slug=ad_slug, is_active=True)
     user = request.user
 
     if request.method == 'POST':
-        # Vérifier si l'interaction de partage existe déjà
         interaction, created = AdInteraction.objects.get_or_create(
             user=user, ad=ad, interaction_type='share'
         )
 
-        if created:  # Si l'interaction est nouvelle (partage non effectué auparavant)
-            # Ajouter un enregistrement dans le modèle Share
+        if created:
             Share.objects.create(user=user, ad=ad)
 
-            # Ajouter des points à l'utilisateur
             user_points = user.userpoints
-            user_points.points += 3  # Ajouter 5 points pour le partage
+            user_points.points += 3
             user_points.save()
 
-            # Incrémenter le compteur de partages de l'annonce
             ad.shares_count += 1
             ad.save()
+
+            # ✅ Désactivation si max_shares atteint
+            ad.check_deactivation_by_shares()
 
         return JsonResponse({
             'status': 'success',
@@ -5093,6 +5200,37 @@ def share_ad(request, ad_slug):
         })
 
     return redirect('advertisement_list')
+# @login_required
+# def share_ad(request, ad_slug):
+#     ad = get_object_or_404(Advertisement, slug=ad_slug)
+#     user = request.user
+
+#     if request.method == 'POST':
+#         # Vérifier si l'interaction de partage existe déjà
+#         interaction, created = AdInteraction.objects.get_or_create(
+#             user=user, ad=ad, interaction_type='share'
+#         )
+
+#         if created:  # Si l'interaction est nouvelle (partage non effectué auparavant)
+#             # Ajouter un enregistrement dans le modèle Share
+#             Share.objects.create(user=user, ad=ad)
+
+#             # Ajouter des points à l'utilisateur
+#             user_points = user.userpoints
+#             user_points.points += 3  # Ajouter 5 points pour le partage
+#             user_points.save()
+
+#             # Incrémenter le compteur de partages de l'annonce
+#             ad.shares_count += 1
+#             ad.save()
+
+#         return JsonResponse({
+#             'status': 'success',
+#             'new_shares': ad.shares_count,
+#             'new_points': user_points.points
+#         })
+
+#     return redirect('advertisement_list')
 
 
 

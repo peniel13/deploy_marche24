@@ -881,7 +881,7 @@ class AdvertisementAdmin(admin.ModelAdmin):
                 'target_cities', 'target_keywords',
                 'target_address_keywords',  # ✅ Mot-clés d'adresse
                 ('target_latitude', 'target_longitude', 'target_radius_km'),  # ✅ Zone géographique
-                'max_target_users',
+                'max_target_users','max_likes', 'max_shares', 'is_active'
             )
         }),
     )
@@ -1014,7 +1014,7 @@ from .models import PopUpAdvertisement
 
 # Personnalisation de l'interface d'administration pour PopUpAdvertisement
 class PopUpAdvertisementAdmin(admin.ModelAdmin):
-    list_display = ('media_type', 'is_active', 'created_at')  # Colonnes affichées dans la liste
+    list_display = ('media_type', 'is_active', 'created_at','url')  # Colonnes affichées dans la liste
     list_filter = ('is_active', 'media_type')  # Filtres disponibles dans la colonne de filtre
     search_fields = ('media_type',)  # Permet de rechercher par type de média
     ordering = ('-created_at',)  # Trie les publicités par date de création (du plus récent au plus ancien)

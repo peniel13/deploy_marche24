@@ -810,7 +810,9 @@ class Advertisement(models.Model):
     target_latitude = models.DecimalField(max_digits=20, decimal_places=18, blank=True, null=True)
     target_longitude = models.DecimalField(max_digits=20, decimal_places=18, blank=True, null=True)
     target_radius_km = models.DecimalField(max_digits=5, decimal_places=2, blank=True, null=True, help_text="Rayon en kilomètres autour de la position ciblée.")
-
+    max_likes = models.PositiveIntegerField(blank=True, null=True, help_text="Nombre maximum de likes autorisé avant désactivation.")
+    is_active = models.BooleanField(default=True, help_text="Si désactivé, la pub ne sera plus affichée.")
+    max_shares = models.PositiveIntegerField(blank=True, null=True)
     def get_absolute_url(self):
       return reverse('advertisement_detail', kwargs={'slug': self.slug})
 
@@ -819,7 +821,14 @@ class Advertisement(models.Model):
             self.slug = slugify(self.title)
         super().save(*args, **kwargs)
     
-
+    def check_deactivation_by_likes(self):
+        if self.max_likes and self.likes_count >= self.max_likes:
+            self.is_active = False
+            self.save(update_fields=["is_active"])
+    def check_deactivation_by_shares(self):
+        if self.max_shares and self.shares_count >= self.max_shares:
+           self.is_active = False
+           self.save(update_fields=["is_active"])
     def __str__(self):
         return self.title
 
@@ -936,7 +945,7 @@ class PopUpAdvertisement(models.Model):
     file = models.FileField(upload_to='ads/')
     created_at = models.DateTimeField(auto_now_add=True)
     is_active = models.BooleanField(default=True)  # Ajout d'un champ booléen pour activer/désactiver
-
+    url = models.URLField(blank=True, null=True) 
     def __str__(self):
         return f"Publicité {'Active' if self.is_active else 'Inactive'} - {self.media_type}"
 

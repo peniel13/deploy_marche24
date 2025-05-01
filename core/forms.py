@@ -594,7 +594,7 @@ class AdvertisementForm(forms.ModelForm):
             'target_all_users', 'target_sex', 'target_communes',
             'target_cities', 'target_keywords', 'target_address_keywords',
             'target_latitude', 'target_longitude', 'target_radius_km',
-            'max_target_users'
+            'max_target_users','max_likes', 'max_shares', 'is_active'
         ]
         widgets = {
             'title': forms.TextInput(attrs={'class': 'form-control'}),
@@ -614,6 +614,9 @@ class AdvertisementForm(forms.ModelForm):
             'target_longitude': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.000001'}),
             'target_radius_km': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01'}),
             'max_target_users': forms.NumberInput(attrs={'class': 'form-control'}),
+            'max_likes': forms.NumberInput(attrs={'class': 'form-control'}),
+            'max_shares': forms.NumberInput(attrs={'class': 'form-control'}),
+            'is_active': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
         }
 
     def clean_target_communes(self):

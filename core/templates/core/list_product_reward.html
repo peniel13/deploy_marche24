@@ -19,7 +19,7 @@
         </p>
     </div>
     <!-- Titre de la page -->
-    <h2 class="text-3xl font-bold mb-4">Explorer les produits ou services achetables avec vos Points de fidélité</h2>
+    <h2 class="text-3xl font-bold mb-4">Explorer les produits ou services achétables avec vos Points de fidélité</h2>
 
     <!-- Formulaire de recherche -->
     <section id="search" class="mb-8">
@@ -297,7 +297,13 @@
                         <source src="{{ ad_popup.file.url }}" type="video/mp4">
                     </video>
                 {% endif %}
-
+                {% if ad_popup.url %}
+                    <div class="mt-4">
+                        <a href="{{ ad_popup.url }}" target="_blank" class="btn btn-danger" style="font-size: 18px; padding: 10px 20px; background-color: #ff5733; border: none; color: white; border-radius: 5px; transition: background-color 0.3s ease;">
+                            Voir l'annonce
+                        </a>
+                    </div>
+                {% endif %}
                
             </div>
         </div>

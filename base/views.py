@@ -57,9 +57,8 @@ def index(request):
         websites = paginator.page(1)
     except EmptyPage:
         websites = paginator.page(paginator.num_pages)
-     # Récupérer les publicités vidéo
-    ads = Advertisement.objects.all().order_by('-created_at')[:3]  # Trie les publicités par date de création décroissante
-
+     # Récupérer les publicités vidéo  # Trie les publicités par date de création décroissante
+    ads = Advertisement.objects.filter(is_active=True).order_by('-created_at')[:3]
     if request.user.is_authenticated:
         user = request.user
         user_points = UserPoints.objects.filter(user=user).first()
