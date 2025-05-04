@@ -691,6 +691,47 @@ class SpotPubStoreForm(forms.ModelForm):
         return video
 
 
+from .models import LotteryParticipation
+from django import forms
+from .models import LotteryParticipation
+class LotteryParticipationForm(forms.ModelForm):
+    class Meta:
+        model = LotteryParticipation
+        fields = ['full_name', 'phone_number', 'id_transaction']
+
+    def __init__(self, *args, **kwargs):
+        self.user = kwargs.pop('user', None)
+        self.lottery = kwargs.pop('lottery', None)
+        super().__init__(*args, **kwargs)
+
+        # Style unifié pour les champs
+        self.fields['full_name'].widget.attrs.update({
+            'class': 'w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500',
+            'placeholder': 'Votre nom complet'
+        })
+        self.fields['phone_number'].widget.attrs.update({
+            'class': 'w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500',
+            'placeholder': 'Votre numéro de téléphone'
+        })
+        self.fields['id_transaction'].widget.attrs.update({
+            'class': 'w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500',
+            'placeholder': 'ID de transaction'
+        })
+
+    def clean(self):
+        cleaned_data = super().clean()
+        if self.lottery.current_participant_count() >= self.lottery.max_participants:
+            raise forms.ValidationError("Le nombre maximum de participants a été atteint.")
+        return cleaned_data
+
+    def save(self, commit=True):
+        instance = super().save(commit=False)
+        instance.user = self.user
+        instance.lottery = self.lottery
+        if commit:
+            instance.save()
+        return instance
+
 # class MobileMoneyPaymentForm(forms.ModelForm):
 #     class Meta:
 #         model = MobileMoneyPayment

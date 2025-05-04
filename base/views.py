@@ -1,5 +1,5 @@
 from django.shortcuts import render,redirect
-from core.models import Store, Category, Product,Typestore,CategoryStore,Advertisement,UserPoints,AdInteraction,UserLocation,Share,PopUpAdvertisement
+from core.models import Store, Category, Product,Typestore,CategoryStore,Advertisement,UserPoints,AdInteraction,UserLocation,Share,PopUpAdvertisement,Lottery
 from .models import WebsiteLink,Publicite
 from core.forms import AdInteractionForm
 from django.db.models import Q
@@ -194,7 +194,19 @@ def index(request):
     # Génère les URLs absolues pour chaque publicité
     ad_absolute_urls = {ad.id: request.build_absolute_uri(ad.get_absolute_url()) for ad in ads}      
 
-    ad_popup = PopUpAdvertisement.objects.filter(is_active=True).first()          
+    ad_popup = PopUpAdvertisement.objects.filter(is_active=True).first() 
+
+    lotteries = Lottery.objects.filter(is_active=True).order_by('-created_at')[:3]
+
+    for lottery in lotteries:
+        lottery.current_count = lottery.current_participant_count()
+        # Associer le gagnant de rang 1 à cette loterie
+        lottery.top_winner = (
+            lottery.participations
+            .filter(winner_rank=1)
+            .select_related('user')
+            .first()
+        )         
       # Les 3 dernières publicités
     # Passer toutes les données nécessaires au template
     return render(request, "base/index.html", {  
@@ -211,6 +223,7 @@ def index(request):
         'user_shares': user_shares,
         'ad_absolute_urls': ad_absolute_urls,
         'ad_popup': ad_popup,
+        'lotteries': lotteries
     })
 
 def apropos(request):

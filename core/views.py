@@ -5325,6 +5325,107 @@ def statistiques_view(request):
 
 
 
+from django.shortcuts import get_object_or_404, render
+from django.contrib.auth.decorators import login_required
+from django.http import HttpResponseRedirect
+from .models import Lottery, LotteryParticipation
+import random
+from django.contrib.admin.views.decorators import staff_member_required
+import random
+
+def lottery_result(request, lottery_id):
+    lottery = get_object_or_404(Lottery, id=lottery_id)
+
+    # Tous les participants actifs
+    participants = lottery.participations.filter(is_active=True)
+
+    # Liste des gagnants triés par rang croissant (ordre de sélection)
+    winners = list(participants.filter(is_winner=True).order_by('winner_rank'))
+
+    # Seuls les admins peuvent voir le bouton de tirage
+    show_pick_button = request.user.is_staff and participants.exclude(is_winner=True).exists()
+
+    if request.method == "POST" and show_pick_button:
+        num_to_draw = int(request.POST.get("num_winners", 1))
+        available_participants = list(participants.exclude(is_winner=True))
+
+        drawn = random.sample(available_participants, min(num_to_draw, len(available_participants)))
+
+        # Récupérer le rang actuel maximal parmi les gagnants existants
+        existing_ranks = [w.winner_rank for w in winners if w.winner_rank]
+        current_rank = max(existing_ranks) if existing_ranks else 0
+
+        for p in drawn:
+            current_rank += 1
+            p.is_winner = True
+            p.winner_rank = current_rank
+            p.save()
+            winners.append(p)  # Ajouter à la liste pour affichage
+
+        return HttpResponseRedirect(request.path)
+
+    return render(request, 'core/lottery_result.html', {
+        'lottery': lottery,
+        'winners': winners,
+        'participants': participants,
+        'show_pick_button': show_pick_button,
+    })
+
+from django.shortcuts import render, get_object_or_404, redirect
+from django.contrib import messages
+from django.contrib.auth.decorators import login_required
+from .models import Lottery,LotteryParticipation
+from .forms import LotteryParticipationForm
+@login_required
+def participate_in_lottery(request, lottery_id):
+    lottery = get_object_or_404(Lottery, id=lottery_id, is_active=True)
+
+    if lottery.current_participant_count() >= lottery.max_participants:
+        messages.warning(request, "Le nombre maximum de participants a été atteint.")
+        return redirect('lottery_list')
+
+    if request.method == 'POST':
+        form = LotteryParticipationForm(request.POST, user=request.user, lottery=lottery)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Votre participation a été enregistrée. Elle sera activée par un administrateur.")
+            return redirect('lottery_list')
+    else:
+        form = LotteryParticipationForm(user=request.user, lottery=lottery)
+
+    return render(request, 'core/participate.html', {
+        'form': form,
+        'lottery': lottery,
+    })
+
+
+from django.shortcuts import render
+from .models import Lottery
+def lottery_list(request):
+    lotteries = Lottery.objects.filter(is_active=True).order_by('-created_at')
+
+    for lottery in lotteries:
+        lottery.current_count = lottery.current_participant_count()
+        # Associer le gagnant de rang 1 à cette loterie
+        lottery.top_winner = (
+            lottery.participations
+            .filter(winner_rank=1)
+            .select_related('user')
+            .first()
+        )
+    paginator = Paginator(lotteries, 4)  # 4 tirages par page
+    page = request.GET.get('page')
+
+    try:
+        lotteries = paginator.page(page)
+    except PageNotAnInteger:
+        lotteries = paginator.page(1)
+    except EmptyPage:
+        lotteries = paginator.page(paginator.num_pages)
+    return render(request, 'core/lottery_list.html', {
+        'lotteries': lotteries
+    })
+
 # @login_required
 # def user_dashboard(request):
 #     # Récupérer les points de l'utilisateur

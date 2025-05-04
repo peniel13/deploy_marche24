@@ -989,6 +989,64 @@ class StoreVisit(models.Model):
         return f"{self.store.name} - {self.date} - {self.user or self.ip_address}"
 
 
+
+import random
+from django.conf import settings
+from django.db import models
+class Lottery(models.Model):
+    title = models.CharField(max_length=255)
+    description = models.TextField(blank=True)
+    image = models.ImageField(upload_to='lottery_images/', blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    max_participants = models.PositiveIntegerField(help_text="Nombre maximum de participants")
+    is_active = models.BooleanField(default=True)
+    number_of_winners = models.PositiveIntegerField(default=1) 
+    participation_fee = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        default=0.00,
+        help_text="Frais de participation en monnaie locale"
+    )
+
+    def __str__(self):
+        return self.title
+
+    def current_participant_count(self):
+        from .models import LotteryParticipation
+        return LotteryParticipation.objects.filter(lottery=self, is_active=True).count()
+
+    def is_full(self):
+        return self.current_participant_count() >= self.max_participants
+
+    def pick_winner(self):
+        from .models import LotteryParticipation
+        if self.is_full():
+            participants = list(LotteryParticipation.objects.filter(lottery=self, is_active=True))
+            if participants:
+                chosen = random.choice(participants)
+                chosen.is_winner = True
+                chosen.winner_rank = 1
+                chosen.save()
+                return chosen.user
+        return None
+
+
+class LotteryParticipation(models.Model):
+    lottery = models.ForeignKey(Lottery, on_delete=models.CASCADE, related_name="participations")
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    full_name = models.CharField(max_length=255)
+    id_transaction = models.CharField(max_length=255)
+    phone_number = models.CharField(max_length=20)
+    is_winner = models.BooleanField(default=False)
+    winner_rank = models.PositiveIntegerField(null=True, blank=True)
+    submitted_at = models.DateTimeField(auto_now_add=True)
+    is_active = models.BooleanField(default=False)  # Doit être activé manuellement
+
+     
+
+    def __str__(self):
+        return f"{self.user} - {self.lottery}"
+
 # class AdInteraction(models.Model):
 #     INTERACTION_CHOICES = [
 #         ('like', 'Like'),

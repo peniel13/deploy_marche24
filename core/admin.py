@@ -1046,3 +1046,74 @@ class StoreVisitAdmin(admin.ModelAdmin):
     list_filter = ('date', 'store')
     search_fields = ('store__name', 'user__username', 'ip_address')
     ordering = ('-date',)
+
+from django.urls import path
+from django.shortcuts import render
+from django.http import HttpResponseRedirect
+from .models import Lottery, LotteryParticipation
+import random
+
+@admin.register(Lottery)
+class LotteryAdmin(admin.ModelAdmin):
+    list_display = ['title', 'max_participants', 'is_active', 'current_participant_count', 'created_at', 'participation_fee', 'number_of_winners']
+    list_filter = ['is_active', 'created_at']
+    search_fields = ['title', 'description']
+    readonly_fields = ['created_at', 'current_participant_count']
+
+    def display_winner(self, obj):
+        winner = obj.pick_winner()  # Appel de la méthode pour obtenir le gagnant
+        return winner.username if winner else "Aucun gagnant"
+    display_winner.short_description = "Gagnant"
+
+    # Affichage du bouton dans le détail de la loterie
+    def get_urls(self):
+        urls = super().get_urls()
+        custom_urls = [
+            path('pick-winner/<int:lottery_id>/', self.admin_site.admin_view(self.pick_random_winner), name='pick_random_winner')
+        ]
+        return custom_urls + urls
+
+    def pick_random_winner(self, request, lottery_id):
+        lottery = self.get_object(request, lottery_id)
+        
+        # Vérifie si la loterie est complète et si un gagnant n'a pas encore été tiré
+        if lottery.is_full():
+            participants = list(LotteryParticipation.objects.filter(lottery=lottery, is_active=True))
+            if participants:
+                # Choisir un gagnant au hasard
+                winner_participant = random.choice(participants)
+                winner_participant.is_winner = True
+                winner_participant.winner_rank = 1
+                winner_participant.save()
+                self.message_user(request, f"Gagnant tiré pour {lottery.title}: {winner_participant.user.username}")
+            else:
+                self.message_user(request, f"Aucun participant pour {lottery.title}")
+        else:
+            self.message_user(request, f"La loterie {lottery.title} n'est pas encore complète.")
+        
+        return HttpResponseRedirect(request.META.get('HTTP_REFERER'))
+
+    # Ajouter un bouton dans le formulaire de détail
+    def change_view(self, request, object_id, form_url='', extra_context=None):
+        lottery = self.get_object(request, object_id)
+        if lottery.is_full():
+            extra_context = extra_context or {}
+            extra_context['show_pick_winner_button'] = True
+        return super().change_view(request, object_id, form_url, extra_context)
+
+    def response_change(self, request, obj):
+        if "_pick_winner" in request.POST:
+            return HttpResponseRedirect(f'/admin/{obj._meta.app_label}/{obj._meta.model_name}/pick-winner/{obj.id}/')
+        return super().response_change(request, obj)
+    
+@admin.register(LotteryParticipation)
+class LotteryParticipationAdmin(admin.ModelAdmin):
+    list_display = ['user', 'lottery', 'full_name','id_transaction', 'phone_number', 'submitted_at', 'is_active','is_winner','winner_rank']
+    list_filter = ['lottery', 'is_active']
+    search_fields = ['user__username', 'full_name','id_transaction', 'phone_number']
+    actions = ['activate_participations']
+
+    def activate_participations(self, request, queryset):
+        updated = queryset.update(is_active=True)
+        self.message_user(request, f"{updated} participations activées avec succès.")
+    activate_participations.short_description = "Activer les participations sélectionnées"

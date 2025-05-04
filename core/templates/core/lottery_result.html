@@ -1,0 +1,99 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto py-10 px-4">
+    <h1 class="text-3xl font-bold mb-6 text-center">🎉 Résultat du Tirage : {{ lottery.title }}</h1>
+
+    <h2 class="text-2xl font-semibold mb-4">🎉 Gagnants :</h2>
+{% if winners %}
+    <ul class="space-y-3 mb-4">
+        {% for win in winners %}
+            <li class="flex items-center space-x-4">
+                <div class="flex-shrink-0">
+                    {% if win.user.profile_pic %}
+                        <img class="h-10 w-10 rounded-full" src="{{ win.user.profile_pic.url }}">
+                    {% else %}
+                        <img class="h-10 w-10 rounded-full" src="https://bootdey.com/img/Content/avatar/avatar7.png">
+                    {% endif %}
+                </div>
+                <span class="text-gray-800 font-semibold">
+                    🥇 {{ forloop.counter }}. {{ win.user.username }} {{ win.user.last_name }}
+                </span>
+            </li>
+        {% endfor %}
+    </ul>
+{% else %}
+    <p class="text-lg text-gray-700 mb-4">Aucun gagnant désigné encore.</p>
+{% endif %}
+
+    
+
+    <h2 class="text-2xl font-semibold mb-4 mt-6">Liste des participants (frais de participation : {{ lottery.participation_fee }} USD)</h2>
+
+    <div class="mb-6">
+        <input type="text" id="search-participant" class="px-4 py-2 border border-gray-300 rounded" placeholder="Rechercher un participant...">
+    </div>
+
+   <!-- Liste des participants avec scroll vertical limité à 4 éléments -->
+<div class="overflow-y-auto max-h-64 mb-6 border border-gray-200 rounded p-4" id="participant-scroll">
+    <ul id="participant-list" class="space-y-4">
+        {% for participant in participants %}
+            <li class="flex items-center space-x-4">
+                <div class="flex-shrink-0">
+                    {% if participant.user.profile_pic %}
+                        <img class="h-10 w-10 rounded-full" src="{{ participant.user.profile_pic.url }}" alt="Avatar">
+                    {% else %}
+                        <img class="h-10 w-10 rounded-full" src="https://bootdey.com/img/Content/avatar/avatar7.png" alt="Avatar par défaut">
+                    {% endif %}
+                </div>
+                <span class="text-gray-800">{{ participant.user.username }} {{ participant.user.last_name }}, bonne chance prochainement</span>
+            </li>
+        {% empty %}
+            <p>Aucun participant pour cette loterie.</p>
+        {% endfor %}
+    </ul>
+</div>
+{% if show_pick_button %}
+    <form method="POST" class="mt-6 space-y-4">
+        {% csrf_token %}
+        <label for="num_winners" class="block text-sm font-medium text-gray-700">Nombre de gagnants à tirer :</label>
+        <input type="number" name="num_winners" min="1" max="10" value="1" class="w-20 px-2 py-1 border border-gray-300 rounded" required>
+
+        <button type="submit" class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">
+            Tirer des gagnants
+        </button>
+    </form>
+{% endif %}
+<!-- Image et description de la loterie -->
+{% if lottery.image %}
+    <div class="mt-8 text-center">
+        <img src="{{ lottery.image.url }}" alt="Image de la loterie" class="mx-auto rounded-lg shadow-md max-w-sm">
+    </div>
+{% endif %}
+
+{% if lottery.description %}
+    <div class="mt-4 px-4 text-gray-700 text-lg">
+        <p>{{ lottery.description }}</p>
+    </div>
+{% endif %}
+
+    
+
+</div>
+
+<script>
+    document.getElementById('search-participant').addEventListener('input', function() {
+        const searchValue = this.value.toLowerCase();
+        const participants = document.querySelectorAll('#participant-list li');
+        participants.forEach(function(participant) {
+            const username = participant.textContent.toLowerCase();
+            if (username.includes(searchValue)) {
+                participant.style.display = '';
+            } else {
+                participant.style.display = 'none';
+            }
+        });
+    });
+</script>
+
+{% endblock %}

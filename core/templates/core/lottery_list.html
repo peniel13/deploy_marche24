@@ -1,0 +1,159 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block content %}
+
+<div class="max-w-5xl mx-auto py-10 px-4">
+    <h1 class="text-3xl font-bold mb-6 text-center">🎉 Tirages au sort Challenge</h1>
+
+    {% if lotteries %}
+        <div id="tirages" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {% for lottery in lotteries %}
+                <div id="tirage-{{ lottery.id }}" class="bg-white p-6 rounded-lg shadow-md transform transition-transform hover:scale-105 hover:shadow-lg duration-300 mb-6">
+                    
+                    {% if lottery.image %}
+                        <img src="{{ lottery.image.url }}" alt="{{ lottery.title }}" class="w-full h-48 object-cover rounded mb-4">
+                    {% endif %}
+
+                    <h2 class="text-xl font-semibold mb-2">{{ lottery.title }}</h2>
+
+                    {% if lottery.top_winner %}
+                        <div class="flex items-center space-x-4 mb-4 bg-green-50 p-3 rounded">
+                            <div class="flex-shrink-0">
+                                {% if lottery.top_winner.user.profile_pic %}
+                                    <img class="h-12 w-12 rounded-full" src="{{ lottery.top_winner.user.profile_pic.url }}" alt="Avatar gagnant">
+                                {% else %}
+                                    <img class="h-12 w-12 rounded-full" src="https://bootdey.com/img/Content/avatar/avatar7.png" alt="Avatar par défaut">
+                                {% endif %}
+                            </div>
+                            <p class="text-green-700 font-medium">
+                                🎉 Félicitations à <strong>{{ lottery.top_winner.user.username }} le gagnant</strong> !
+                            </p>
+                        </div>
+                        <p>🏆 Gagnant numéro 1 {{ lottery.top_winner.user.username }}</p>
+                    {% else %}
+                        <p class="text-gray-500 italic mb-4">Aucun gagnant désigné encore.</p>
+                    {% endif %}
+
+                    <p class="text-gray-700 mb-4">
+                        {{ lottery.description|truncatechars:150 }}
+                        {% if lottery.description|length > 150 %}
+                            <button 
+                                type="button" 
+                                class="text-blue-600 underline ml-2 hover:text-blue-800" 
+                                onclick="openModal('{{ lottery.id }}')">
+                                Lire plus
+                            </button>
+                        {% endif %}
+                    </p>
+
+                    <!-- MODAL -->
+                    <div id="modal-{{ lottery.id }}" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+                        <div class="bg-white rounded-lg shadow-lg max-w-xl w-full p-6 relative">
+                            <button onclick="closeModal('{{ lottery.id }}')" class="absolute top-2 right-2 text-gray-500 hover:text-gray-700 text-xl">&times;</button>
+                            <h2 class="text-2xl font-semibold mb-4">Description complète</h2>
+                            <p class="text-gray-800 whitespace-pre-line">{{ lottery.description }}</p>
+                        </div>
+                    </div>
+
+                    {% with count=lottery.current_participant_count %}
+                        <div class="text-sm text-gray-600 mb-2">
+                            <strong>Prix de Participation :</strong> {{ lottery.participation_fee }} usd
+                        </div>
+                        <div class="text-sm text-gray-600 mb-2">
+                            <strong>Participants :</strong> {{ count }} / {{ lottery.max_participants }}
+                        </div>
+
+                        {% if user.is_authenticated %}
+    {% if lottery.is_active and count < lottery.max_participants %}
+        <a href="{% url 'participate_in_lottery' lottery.id %}" class="inline-block mt-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold px-4 py-2 rounded">
+            Participer
+        </a>
+    {% else %}
+        <p class="text-red-500 font-semibold">Les participations sont fermées.</p>
+    {% endif %}
+{% else %}
+    <a href="{% url 'signin' %}?next={% url 'participate_in_lottery' lottery.id %}" class="inline-block mt-2 bg-yellow-500 hover:bg-yellow-600 text-white font-semibold px-4 py-2 rounded">
+        Connectez-vous pour participer
+    </a>
+{% endif %}
+
+
+                        {% if count == lottery.max_participants %}
+                            <a href="{% url 'lottery_result' lottery.id %}" class="inline-block mt-2 bg-green-600 hover:bg-green-700 text-white font-semibold px-4 py-2 rounded">
+                                Voir le résultat
+                            </a>
+                        {% else %}
+                            <a href="#" class="inline-block mt-2 bg-gray-400 text-white font-semibold px-4 py-2 rounded cursor-not-allowed" disabled>
+                                Voir le résultat
+                            </a>
+                        {% endif %}
+                    {% endwith %}
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <p class="text-center text-gray-500">Aucun tirage au sort disponible pour le moment.</p>
+    {% endif %}
+
+    {% if lotteries.has_other_pages %}
+        <div class="mt-8 mb-20"> {# <-- Ajoute un margin-bottom pour espacer le footer #}
+            <nav aria-label="Pagination des tirages au sort" class="flex justify-center">
+                <ul class="flex space-x-4">
+                    {% if lotteries.has_previous %}
+                        <li>
+                            <a href="?page=1#tirages" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+                                &laquo; Première
+                            </a>
+                        </li>
+                        <li>
+                            <a href="?page={{ lotteries.previous_page_number }}#tirages" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+                                &lt;
+                            </a>
+                        </li>
+                    {% endif %}
+
+                    <li>
+                        <span class="px-4 py-2 bg-blue-600 text-white rounded-lg">
+                            {{ lotteries.number }}
+                        </span>
+                    </li>
+
+                    {% if lotteries.number < lotteries.paginator.num_pages %}
+                        <li>
+                            <a href="?page={{ lotteries.paginator.num_pages }}#tirages" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-blue-600 hover:text-white">
+                                {{ lotteries.paginator.num_pages }}
+                            </a>
+                        </li>
+                    {% endif %}
+
+                    {% if lotteries.has_next %}
+                        <li>
+                            <a href="?page={{ lotteries.next_page_number }}#tirages" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+                                &gt;
+                            </a>
+                        </li>
+                        <li>
+                            <a href="?page={{ lotteries.paginator.num_pages }}#tirages" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+                                Dernière &raquo;
+                            </a>
+                        </li>
+                    {% endif %}
+                </ul>
+            </nav>
+        </div>
+    {% endif %}
+</div>
+
+<script>
+    function openModal(id) {
+        document.getElementById('modal-' + id).classList.remove('hidden');
+        document.getElementById('modal-' + id).classList.add('flex');
+    }
+
+    function closeModal(id) {
+        document.getElementById('modal-' + id).classList.add('hidden');
+        document.getElementById('modal-' + id).classList.remove('flex');
+    }
+</script>
+
+{% endblock %}

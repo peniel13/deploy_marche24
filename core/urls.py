@@ -81,6 +81,9 @@ urlpatterns = [
     path('ad/<slug:slug>/visit/', views.visit_ad_url, name='visit_ad_url'),
     path('ads/<slug:slug>/visit-no-reward/', views.visit_ad_url_no_points, name='visit_ad_url_no_points'),
     path('statistiques/', statistiques_view, name='statistiques'),
+    path('loteries/', views.lottery_list, name='lottery_list'),
+    path('loteries/<int:lottery_id>/participer/', views.participate_in_lottery, name='participate_in_lottery'),
+    path('loteries/<int:lottery_id>/resultat/', views.lottery_result, name='lottery_result'), 
     # path('rewards/<int:id>/', views.product_reward_detail, name='product_reward_detail'),
     # path('rewards/contact/<int:id>/', views.contact_product_reward, name='contact_product_reward'),
     
