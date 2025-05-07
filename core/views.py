@@ -123,17 +123,31 @@ def signup(request):
 
 
 
-def signin (request):
+def signin(request):
     if request.method == 'POST':
-        email = request.POST["email"]
-        password= request.POST["password"]
+        email = request.POST.get("email")
+        password = request.POST.get("password")
 
         user = authenticate(request, email=email, password=password)
         if user is not None:
             login(request, user)
             return redirect('index')
-    context= {}
+        else:
+            messages.error(request, "Vous n'êtes pas encore inscrit ou vous avez mal entré vos identifiants.")
+    
+    context = {}
     return render(request, "core/login.html", context)
+# def signin (request):
+#     if request.method == 'POST':
+#         email = request.POST["email"]
+#         password= request.POST["password"]
+
+#         user = authenticate(request, email=email, password=password)
+#         if user is not None:
+#             login(request, user)
+#             return redirect('index')
+#     context= {}
+#     return render(request, "core/login.html", context)
 
 def signout(request):
     logout(request)
