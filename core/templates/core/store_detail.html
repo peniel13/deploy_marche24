@@ -8,12 +8,14 @@
     <div class="container mx-auto h-full flex items-center justify-center relative z-10 px-4">
         <div class="text-center text-white">
             <!-- Utilisation de classes responsive pour adapter la taille du texte -->
-            <h1 class="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold">Bienvenue sur {{ store.typestore }} : {{ store.name }}</h1>
+            <h1 class="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold">Bienvenue sur : {{ store.name }}</h1>
             <p class="text-lg sm:text-2xl mt-2">{{ store.commune }}</p>
 
             <!-- Affichage des autres informations directement dans le header -->
             <div class="mt-4 text-lg">
                 <p><strong>Description :</strong> {{ store.description }}</p>
+                <p><strong>Type :</strong> {{ store.typestore }}</p>
+                <p><strong>Categorie :</strong> {{ store.categorystore }}</p>
                 <p><strong>Adresse :</strong> {{ store.adresse }}</p>
             </div>
         </div>
@@ -49,6 +51,10 @@
         <a href="{% url 'add_or_update_spotpub' store.slug %}" 
    class="w-auto px-4 py-2 sm:px-6 sm:py-3 text-white bg-red-500 hover:bg-red-600 rounded-md transition duration-300 mx-auto sm:mx-0">
    Ajouter ou Modifier le Spot Pub
+</a>
+<a href="{% url 'create_notification' store.slug %}" 
+class="w-auto px-4 py-2 sm:px-6 sm:py-3 text-white bg-green-600 hover:bg-green-800 rounded-md transition duration-300 mx-auto sm:mx-0">
+ Créer une notification
 </a>
 
     </div>
@@ -92,6 +98,37 @@
     </p>
     <span class="text-sm text-gray-500 ml-3 mt-1">Note moyenne de {{ store.name }} : {{ average_rating|floatformat:1 }}/10</span>
 </div>
+<div class="flex items-center justify-center mt-4 space-x-2 text-gray-700 text-sm">
+    <span class="text-xl">👥</span>
+    <p class="text-center">
+        Nombre d'abonné : <strong>{{ store.subscribers.count }}</strong> abonné(s){{ store.subscribers.count|pluralize:"s" }}
+    </p>
+</div>
+
+{% if user.is_authenticated %}
+    <div class="flex flex-col items-center justify-center space-y-4 my-6">
+        {% if not is_subscribed %}
+            <p class="text-lg font-medium text-gray-800 text-center">
+                Abonnez-vous à {{ store.name }} pour recevoir des notifications des nouveautés.
+            </p>
+        {% endif %}
+        <form method="post" action="{% url 'toggle_subscription' store.slug %}">
+            {% csrf_token %}
+            <button type="submit" class="px-4 py-2 rounded-md font-semibold transition
+                {% if is_subscribed %}
+                    bg-red-600 text-white hover:bg-red-700
+                {% else %}
+                    bg-blue-600 text-white hover:bg-blue-700
+                {% endif %}">
+                {% if is_subscribed %}
+                    Se désabonner
+                {% else %}
+                    S’abonner
+                {% endif %}
+            </button>
+        </form>
+    </div>
+{% endif %}
 
 <!-- Formulaire de recherche et filtres -->
 <section class="container mx-auto mt-8 px-4">
@@ -427,8 +464,7 @@
         {% endif %}
       </div>
   
-      <h2 class="text-3xl font-bold mb-4">Témoignages du {{ store.typestore }}</h2>
-      <h3 class="text-2xl font-semibold mb-10">{{ store.name }}</h3>
+      <h2 class="text-3xl font-bold mb-4">Témoignages de {{ store.name }}</h2>
   
       {% if testimonials %}
         <p class="text-gray-600 mb-10 text-sm">
@@ -827,7 +863,81 @@ function hideImagePopup() {
         document.getElementById("testimonialModal").classList.add("hidden");
       }
     </script>
-  
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            const btn = document.getElementById("subscribe-btn");
+    
+            if (btn) {
+                btn.onclick = function () {
+                    const storeSlug = btn.dataset.storeSlug;
+                    const url = `/store/${storeSlug}/toggle-subscription/`;
+    
+                    fetch(url, {
+                        method: "POST",
+                        headers: {
+                            "X-CSRFToken": getCookie("csrftoken"),
+                            "Content-Type": "application/json",
+                        },
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.subscribed) {
+                            btn.textContent = "Se désabonner";
+                            btn.classList.remove("bg-blue-600", "hover:bg-blue-700");
+                            btn.classList.add("bg-red-600", "hover:bg-red-700");
+                            alert("Vous êtes abonné à ce store !");
+                        } else {
+                            btn.textContent = "S’abonner";
+                            btn.classList.remove("bg-red-600", "hover:bg-red-700");
+                            btn.classList.add("bg-blue-600", "hover:bg-blue-700");
+                            alert("Vous vous êtes désabonné de ce store.");
+                        }
+                    })
+                    .catch(error => {
+                        console.error("Erreur lors de la mise à jour de l'abonnement:", error);
+                    });
+                };
+            }
+    
+            function getCookie(name) {
+                const value = "; " + document.cookie;
+                const parts = value.split("; " + name + "=");
+                if (parts.length === 2) return parts.pop().split(";").shift();
+            }
+        });
+    </script>    
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            const subscribeBtn = document.getElementById("subscribe-btn");
+            const subscriberCount = document.getElementById("subscriber-count");
+        
+            if (subscribeBtn && subscriberCount) {
+                subscribeBtn.addEventListener("click", function () {
+                    const storeSlug = this.dataset.storeSlug;
+                    fetch(`/store/${storeSlug}/toggle-subscription/`, {
+                        method: 'POST',
+                        headers: {
+                            'X-CSRFToken': '{{ csrf_token }}',
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({})
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.subscribed !== undefined) {
+                            this.textContent = data.subscribed ? "Se désabonner" : "S’abonner";
+                            this.classList.toggle("bg-red-600", data.subscribed);
+                            this.classList.toggle("bg-blue-600", !data.subscribed);
+                            this.classList.toggle("hover:bg-red-700", data.subscribed);
+                            this.classList.toggle("hover:bg-blue-700", !data.subscribed);
+                            subscriberCount.textContent = data.subscriber_count;
+                        }
+                    });
+                });
+            }
+        });
+        </script>
+           
 {% endblock %}
 
 

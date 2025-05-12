@@ -178,10 +178,23 @@ class Store(models.Model):
         if self.thumbnail and hasattr(self.thumbnail, 'size'):
             return f"{self.thumbnail.size / 1024:.1f} Ko"
         return "Aucune image"
+    @property
+    def subscriber_count(self):
+        return self.subscribers.count()
     
     def __str__(self):
         return self.name
 
+class StoreSubscription(models.Model):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='subscriptions')
+    store = models.ForeignKey(Store, on_delete=models.CASCADE, related_name='subscribers')
+    subscribed_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('user', 'store')  # Un utilisateur ne peut s’abonner qu’une seule fois
+
+    def __str__(self):
+        return f"{self.user.email} -> {self.store.name}"
 
 
 from django.db import models
@@ -296,6 +309,40 @@ class Product(models.Model):
                 self.image_galerie._compressed = True
 
         super(Product, self).save(*args, **kwargs)
+from django.db import models
+from django.conf import settings
+from django.urls import reverse
+
+from django.db import models
+from django.conf import settings
+from django.urls import reverse
+
+class Notification(models.Model):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="notifications")
+    store = models.ForeignKey('Store', on_delete=models.CASCADE)
+    title = models.CharField(max_length=200)  # Titre de la notification
+    description = models.TextField()  # Description de la notification
+    image = models.ImageField(upload_to='notifications/', null=True, blank=True)  # Image de la notification (optionnelle)
+    is_read = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Notification pour {self.user.email} - {self.store.name}"
+
+    def get_absolute_url(self):
+        return reverse('store_detail', kwargs={'slug': self.store.slug})
+
+# models.py
+class UserNotificationHide(models.Model):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    notification = models.ForeignKey('Notification', on_delete=models.CASCADE)
+    hidden_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('user', 'notification')
+
+    def __str__(self):
+        return f"{self.user.email} a masqué {self.notification.title}"
 
 # class Product(models.Model):
 #     store = models.ForeignKey(Store, on_delete=models.CASCADE, related_name="products")

@@ -8,7 +8,7 @@ from django.contrib.auth import authenticate, login,logout
 from django.contrib.auth.decorators import login_required
 from django.views.generic import CreateView, DetailView  # DetailView pour afficher un objet, CreateView pour créer un nouvel objet
 from django.urls import reverse
-from .utils import get_client_ip, get_device_fingerprint
+from .utils import get_client_ip
 
 
 from django.shortcuts import render, redirect
@@ -85,30 +85,20 @@ from .forms import RegisterForm
 
 #     context = {"form": form}
 #     return render(request, "core/signup.html", context)
-from .utils import get_client_ip, get_device_fingerprint
+from .utils import get_client_ip
 from django.shortcuts import render, redirect
 from django.contrib import messages
 from .forms import RegisterForm
 from .models import CustomUser
-
 def signup(request):
     form = RegisterForm()
 
     if request.method == 'POST':
         form = RegisterForm(request.POST)
-        device_fingerprint = get_device_fingerprint(request)
-
-        # Vérifier si un utilisateur avec ce fingerprint existe déjà
-        existing_device = CustomUser.objects.filter(device_fingerprint=device_fingerprint, is_active=True).exists()
-
-        if existing_device:
-            messages.error(request, "Cet appareil a déjà été utilisé pour créer un compte.")
-            return render(request, "core/signup.html", {"form": form})
 
         if form.is_valid():
             user = form.save(commit=False)
-            user.device_fingerprint = device_fingerprint
-            user.last_ip = get_client_ip(request)  # Toujours garder l'IP si tu veux pour info
+            user.last_ip = get_client_ip(request)  # Peut être utile pour la sécurité ou l’analyse
             user.save()
             messages.success(request, "Compte créé avec succès !")
             return redirect("signin")
@@ -120,6 +110,36 @@ def signup(request):
 
     context = {"form": form}
     return render(request, "core/signup.html", context)
+
+# def signup(request):
+#     form = RegisterForm()
+
+#     if request.method == 'POST':
+#         form = RegisterForm(request.POST)
+#         device_fingerprint = get_device_fingerprint(request)
+
+#         # Vérifier si un utilisateur avec ce fingerprint existe déjà
+#         existing_device = CustomUser.objects.filter(device_fingerprint=device_fingerprint, is_active=True).exists()
+
+#         if existing_device:
+#             messages.error(request, "Cet appareil a déjà été utilisé pour créer un compte.")
+#             return render(request, "core/signup.html", {"form": form})
+
+#         if form.is_valid():
+#             user = form.save(commit=False)
+#             user.device_fingerprint = device_fingerprint
+#             user.last_ip = get_client_ip(request)  # Toujours garder l'IP si tu veux pour info
+#             user.save()
+#             messages.success(request, "Compte créé avec succès !")
+#             return redirect("signin")
+#         else:
+#             # Afficher les erreurs du formulaire
+#             for field, errors in form.errors.items():
+#                 for error in errors:
+#                     messages.error(request, f"{field}: {error}")
+
+#     context = {"form": form}
+#     return render(request, "core/signup.html", context)
 
 
 
@@ -878,6 +898,7 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from .models import Store, Product
 from .forms import ProductForm
+# 
 @login_required
 def create_product(request, slug):
     store = get_object_or_404(Store, slug=slug, owner=request.user)
@@ -890,20 +911,25 @@ def create_product(request, slug):
             product.category = None  # Pas de catégorie par défaut
             product.save()
 
+            # Création d'une notification pour les abonnés
+            subscribers = StoreSubscription.objects.filter(store=store)
+            for subscription in subscribers:
+                Notification.objects.create(
+                    user=subscription.user,
+                    store=store,
+                    message=f"Un nouveau produit a été ajouté à {store.name}: {product.name}",
+                )
+
             messages.success(request, "Produit créé avec succès ! Veuillez maintenant l'assigner à une catégorie.")
-
-            print(f"✅ Produit {product.id} créé. Redirection vers assign_category.")  # Debug
-
-            return redirect('assign_category', product_id=product.id)  # ✅ Redirection ici
+            return redirect('assign_category', product_id=product.id)
 
         else:
-            print("❌ Formulaire invalide :", form.errors)  # Debug en cas d'erreur
+            messages.error(request, "Il y a des erreurs dans le formulaire.")
 
     else:
         form = ProductForm()
 
     return render(request, 'core/create_product.html', {'form': form, 'store': store})
-
 
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
@@ -938,6 +964,40 @@ def assign_category(request, store_id):
     return render(request, 'core/assign_category.html', {'store': store, 'categories': categories, 'products': products})
 
 
+from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib import messages
+from django.contrib.auth.decorators import login_required
+from .models import Store, Notification
+from .forms import NotificationForm
+
+@login_required
+def create_notification(request, slug):
+    store = get_object_or_404(Store, slug=slug, owner=request.user)
+
+    if request.method == 'POST':
+        form = NotificationForm(request.POST, request.FILES)
+        if form.is_valid():
+            notification = form.save(commit=False)
+            notification.store = store
+            # Crée la notification pour chaque abonné du store
+            subscribers = StoreSubscription.objects.filter(store=store)
+            for subscription in subscribers:
+                Notification.objects.create(
+                    user=subscription.user,
+                    store=store,
+                    title=notification.title,
+                    description=notification.description,
+                    image=notification.image,
+                )
+
+            messages.success(request, "Notification créée avec succès et envoyée à vos abonnés !")
+            return redirect('store_detail', slug=store.slug)
+        else:
+            messages.error(request, "Il y a des erreurs dans le formulaire.")
+    else:
+        form = NotificationForm()
+
+    return render(request, 'core/create_notification.html', {'form': form, 'store': store})
 
 
 
@@ -1791,7 +1851,12 @@ def store_detail(request, slug):
     # Récupérer tous les produits avant pagination
     # Nombre total de produits sans pagination
     total_products = Product.objects.filter(store=store).count()
+    is_subscribed = False
 
+    if request.user.is_authenticated:
+        is_subscribed = StoreSubscription.objects.filter(
+            store=store, user=request.user
+        ).exists()
     today = timezone.now().date()
     week_ago = today - timedelta(days=6)  # 7 jours avec aujourd'hui
 
@@ -1851,7 +1916,8 @@ def store_detail(request, slug):
         'rounded_rating': rounded_rating,
         'range_10': range(1, 11),
         'range_10': range(1, 11),
-        'featured_products': featured_products
+        'featured_products': featured_products,
+        'is_subscribed': is_subscribed,
     }
 
     return render(request, 'core/store_detail.html', context)
@@ -2362,52 +2428,84 @@ from django.contrib import messages
 from .models import Product, Photo
 from .forms import ProductForm, PhotoForm
 @login_required
-
-@login_required
 def edit_product(request, product_id):
-    # Récupère le produit à partir de son ID
     product = get_object_or_404(Product, id=product_id)
 
-    # Vérifie que l'utilisateur est le propriétaire du magasin
     if product.store.owner != request.user:
         messages.error(request, "Vous n'êtes pas autorisé à modifier ce produit.")
         return redirect('manage_product_store', slug=product.store.slug)
 
-    # Formulaire pour modifier les informations du produit
     if request.method == 'POST':
         form = ProductForm(request.POST, request.FILES, instance=product)
         if form.is_valid():
             form.save()
-            messages.success(request, "Produit mis à jour avec succès.")
             
-            # Traitement des images pour la galerie
-            if 'image_galerie' in request.FILES:
-                for image in request.FILES.getlist('image_galerie'):
-                    photo = Photo(product=product, image=image)
-                    photo.save()
-                messages.success(request, "Images ajoutées à la galerie avec succès.")
+            # Création d'une notification pour les abonnés
+            subscribers = StoreSubscription.objects.filter(store=product.store)
+            for subscription in subscribers:
+                Notification.objects.create(
+                    user=subscription.user,
+                    store=product.store,
+                    message=f"Le produit {product.name} a été mis à jour dans {product.store.name}.",
+                )
 
-            # Rediriger vers la page de gestion des produits du magasin
+            messages.success(request, "Produit mis à jour avec succès.")
+
             return redirect('manage_product_store', slug=product.store.slug)
         else:
             messages.error(request, "Il y a des erreurs dans le formulaire.")
     else:
         form = ProductForm(instance=product)
 
-    # Récupère les photos existantes associées au produit
-    photos = product.photos.all()
+    return render(request, 'core/edit_product.html', {'form': form, 'product': product})
 
-    # Formulaire pour ajouter des photos à la galerie
-    photo_form = PhotoForm()
 
-    context = {
-        'form': form,
-        'photo_form': photo_form,
-        'product': product,
-        'photos': photos,
-    }
 
-    return render(request, 'core/edit_product.html', context)
+# @login_required
+# def edit_product(request, product_id):
+#     # Récupère le produit à partir de son ID
+#     product = get_object_or_404(Product, id=product_id)
+
+#     # Vérifie que l'utilisateur est le propriétaire du magasin
+#     if product.store.owner != request.user:
+#         messages.error(request, "Vous n'êtes pas autorisé à modifier ce produit.")
+#         return redirect('manage_product_store', slug=product.store.slug)
+
+#     # Formulaire pour modifier les informations du produit
+#     if request.method == 'POST':
+#         form = ProductForm(request.POST, request.FILES, instance=product)
+#         if form.is_valid():
+#             form.save()
+#             messages.success(request, "Produit mis à jour avec succès.")
+            
+#             # Traitement des images pour la galerie
+#             if 'image_galerie' in request.FILES:
+#                 for image in request.FILES.getlist('image_galerie'):
+#                     photo = Photo(product=product, image=image)
+#                     photo.save()
+#                 messages.success(request, "Images ajoutées à la galerie avec succès.")
+
+#             # Rediriger vers la page de gestion des produits du magasin
+#             return redirect('manage_product_store', slug=product.store.slug)
+#         else:
+#             messages.error(request, "Il y a des erreurs dans le formulaire.")
+#     else:
+#         form = ProductForm(instance=product)
+
+#     # Récupère les photos existantes associées au produit
+#     photos = product.photos.all()
+
+#     # Formulaire pour ajouter des photos à la galerie
+#     photo_form = PhotoForm()
+
+#     context = {
+#         'form': form,
+#         'photo_form': photo_form,
+#         'product': product,
+#         'photos': photos,
+#     }
+
+#     return render(request, 'core/edit_product.html', context)
 
 
 
@@ -5388,7 +5486,7 @@ def lottery_result(request, lottery_id):
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from .models import Lottery,LotteryParticipation
+from .models import Lottery,LotteryParticipation,UserNotificationHide
 from .forms import LotteryParticipationForm
 @login_required
 def participate_in_lottery(request, lottery_id):
@@ -5439,6 +5537,192 @@ def lottery_list(request):
     return render(request, 'core/lottery_list.html', {
         'lotteries': lotteries
     })
+
+
+from django.contrib.auth.decorators import login_required
+from django.http import JsonResponse
+from .models import StoreSubscription, Store
+from django.http import JsonResponse
+from django.contrib.auth.decorators import login_required
+from .models import Store, StoreSubscription
+
+from django.shortcuts import render, redirect
+from django.contrib.auth.decorators import login_required
+from django.http import JsonResponse
+from .models import Store, StoreSubscription
+from .forms import StoreSubscriptionForm
+
+from django.shortcuts import render, get_object_or_404, redirect
+from django.contrib.auth.decorators import login_required
+from .models import StoreSubscription, Store
+
+from django.shortcuts import get_object_or_404, render
+from django.contrib.auth.decorators import login_required
+from django.http import JsonResponse
+from .models import Store, StoreSubscription
+
+@login_required
+def toggle_subscription(request, slug):
+    store = get_object_or_404(Store, slug=slug)
+    subscribed = False
+
+    subscription = StoreSubscription.objects.filter(user=request.user, store=store).first()
+    if subscription:
+        subscription.delete()
+        subscribed = False
+    else:
+        StoreSubscription.objects.create(user=request.user, store=store)
+        subscribed = True
+
+    # Si la requête est AJAX, retourne du JSON
+    if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+        return JsonResponse({
+            'subscribed': subscribed,
+            'subscriber_count': store.subscribers.count()
+        })
+
+    # Sinon, affiche une page classique
+    context = {
+        'store': store,
+        'subscribed': subscribed,
+    }
+    return render(request, 'core/toggle_subscription.html', context)
+
+from django.shortcuts import render
+from .models import Notification
+
+# views.py
+from .models import Notification, UserNotificationHide
+from django.contrib.auth.decorators import login_required
+from django.http import JsonResponse, Http404
+from django.shortcuts import get_object_or_404
+from django.views.decorators.http import require_POST
+from .models import Notification, UserNotificationHide
+from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
+from django.contrib.auth.decorators import login_required
+from django.shortcuts import render
+
+@login_required
+def notifications_list(request):
+    hidden_ids = UserNotificationHide.objects.filter(
+        user=request.user
+    ).values_list('notification_id', flat=True)
+
+    all_notifications = (
+        Notification.objects
+        .filter(user=request.user)
+        .exclude(id__in=hidden_ids)
+        .order_by('-created_at')
+    )
+    unread_notifications_count = Notification.objects.filter(user=request.user, is_read=False).exclude(id__in=hidden_ids).count()
+
+    paginator = Paginator(all_notifications, 6)  # 6 notifications par page
+    page = request.GET.get('page')
+    try:
+        notifications = paginator.page(page)
+    except PageNotAnInteger:
+        notifications = paginator.page(1)
+    except EmptyPage:
+        notifications = paginator.page(paginator.num_pages)
+
+    return render(request, 'core/notifications_list.html', {
+        'notifications': notifications,
+        'paginator': paginator,
+        'unread_notifications_count': unread_notifications_count
+
+    })
+
+# @login_required
+# def notifications_list(request):
+#     hidden_ids = UserNotificationHide.objects.filter(
+#         user=request.user
+#     ).values_list('notification_id', flat=True)
+
+#     notifications = (
+#         Notification.objects
+#         .filter(user=request.user)
+#         .exclude(id__in=hidden_ids)
+#         .order_by('-created_at')
+#     )
+
+#     return render(request, 'core/notifications_list.html', {'notifications': notifications})
+
+# ---- suppression d’une seule notification ----
+from django.contrib import messages
+from django.shortcuts import redirect
+@require_POST
+@login_required
+def delete_notification(request, notification_id):
+    notif = get_object_or_404(Notification, id=notification_id, user=request.user)
+    UserNotificationHide.objects.get_or_create(user=request.user, notification=notif)
+    return redirect('notifications_list')
+
+@require_POST
+@login_required
+def delete_all_notifications(request):
+    notifications = Notification.objects.filter(user=request.user)
+    hide_objs = [
+        UserNotificationHide(user=request.user, notification=n)
+        for n in notifications
+        if not UserNotificationHide.objects.filter(user=request.user, notification=n).exists()
+    ]
+    UserNotificationHide.objects.bulk_create(hide_objs, ignore_conflicts=True)
+    
+    if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+        return JsonResponse({'status': 'ok'})
+
+    messages.success(request, "Toutes les notifications ont été supprimées.")
+    return redirect('notifications_list')
+
+
+# @require_POST
+# @login_required
+# def delete_notification(request, notification_id):
+#     notif = get_object_or_404(Notification, id=notification_id, user=request.user)
+#     UserNotificationHide.objects.get_or_create(user=request.user, notification=notif)
+#     messages.success(request, "Notification supprimée avec succès.")
+#     return redirect('index')  # ou 'home' selon le nom de ta route
+
+# @require_POST
+# @login_required
+# def delete_all_notifications(request):
+#     notifications = Notification.objects.filter(user=request.user)
+#     UserNotificationHide.objects.bulk_create(
+#         [
+#             UserNotificationHide(user=request.user, notification=n)
+#             for n in notifications
+#             if not UserNotificationHide.objects.filter(user=request.user, notification=n).exists()
+#         ],
+#         ignore_conflicts=True,
+#     )
+#     messages.success(request, "Toutes les notifications ont été supprimées.")
+#     return redirect('index')  # ou 'home'
+
+
+
+@login_required
+def mark_notification_as_read(request, notification_id):
+    notification = get_object_or_404(Notification, id=notification_id, user=request.user)
+    notification.is_read = True
+    notification.save()
+                            
+    return JsonResponse({'message': 'Notification marquée comme lue'})
+
+@login_required
+def delete_notification(request, notification_id):
+    notification = get_object_or_404(Notification, id=notification_id, user=request.user)
+    notification.delete()
+
+    return JsonResponse({'message': 'Notification supprimée'})
+
+@login_required
+def delete_all_notifications(request):
+    notifications = Notification.objects.filter(user=request.user)
+    notifications.delete()
+
+    return JsonResponse({'message': 'Toutes les notifications ont été supprimées'})
+
+
 
 # @login_required
 # def user_dashboard(request):

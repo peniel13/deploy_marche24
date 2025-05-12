@@ -732,6 +732,50 @@ class LotteryParticipationForm(forms.ModelForm):
             instance.save()
         return instance
 
+from django import forms
+from .models import StoreSubscription
+
+class StoreSubscriptionForm(forms.ModelForm):
+    class Meta:
+        model = StoreSubscription
+        fields = ['store']  # Le champ "store" est nécessaire pour créer une nouvelle souscription
+
+    def __init__(self, *args, **kwargs):
+        user = kwargs.pop('user', None)  # Passer l'utilisateur lors de l'initialisation du formulaire
+        super().__init__(*args, **kwargs)
+        if user:
+            # Le formulaire doit seulement permettre l'abonnement à un magasin qui n'est pas encore souscrit par l'utilisateur
+            self.fields['store'].queryset = Store.objects.exclude(subscribers=user)
+        else:
+            self.fields['store'].queryset = Store.objects.none()
+
+from django import forms
+from .models import Notification
+
+class NotificationForm(forms.ModelForm):
+    class Meta:
+        model = Notification
+        fields = ['title', 'description', 'image']
+        widgets = {
+            'description': forms.Textarea(attrs={'rows': 4, 'cols': 40}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        # Application de styles uniformes pour les champs
+        self.fields['title'].widget.attrs.update({
+            'class': 'w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500',
+            'placeholder': 'Titre de la notification'
+        })
+        self.fields['description'].widget.attrs.update({
+            'class': 'w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500',
+            'placeholder': 'Description de la notification'
+        })
+        self.fields['image'].widget.attrs.update({
+            'class': 'w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500',
+        })
+
 # class MobileMoneyPaymentForm(forms.ModelForm):
 #     class Meta:
 #         model = MobileMoneyPayment

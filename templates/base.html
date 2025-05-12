@@ -4,6 +4,7 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
+    <meta name="csrf-token" content="{{ csrf_token }}">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
     <title>LUSHI_MARCHE</title>
@@ -50,12 +51,12 @@
                 <a href="{% url 'contact' %}" class="hover:bg-gray-700 px-3 py-2 rounded">Contact</a>
                 <a href="{% url 'politique' %}" class="hover:bg-gray-700 px-3 py-2 rounded">Politique</a>
                 <a href="{% url 'advertisement_list' %}" class="hover:bg-gray-700 px-3 py-2 rounded">Pub</a>
-                <a href="{% url 'lottery_list' %}" class="hover:bg-gray-700 px-3 py-2 rounded">lottery_list</a>
+                <a href="{% url 'lottery_list' %}" class="hover:bg-gray-700 px-3 py-2 rounded">lottery</a>
                 <!-- Dropdown Immo -->
                 <!-- Dropdown Immo -->
 <div class="relative">
     <button class="hover:bg-gray-700 px-3 py-2 rounded inline-flex items-center" id="immoDropdownButton">
-       Menu Service
+       Service
         <svg class="ml-1 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
         </svg>
@@ -84,11 +85,25 @@
 </div>
 
 <a href="{% url 'cart_detail' %}" class="relative inline-block">
-    <img src="{% static 'img/cart.jpg' %}" alt="Panier" class="w-16 h-16">
+    <img src="{% static 'img/cart.jpg' %}" alt="Panier" class="w-16 h-10">
     <span id="cart-items-count" class="absolute top-1/2 left-1/2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs transform -translate-x-1/2 -translate-y-1/2">
         {{ cart.get_item_count }}  <!-- Valeur initiale, mais elle sera mise à jour dynamiquement -->
     </span>
 </a>
+
+{% if user.is_authenticated %}
+<a href="{% url 'notifications_list' %}" class="relative inline-block">
+    <img src="{% static 'img/belll.jpg' %}" alt="Notifications" class="w-10 h-10">
+    {% if unread_notifications_count > 0 %}
+    <span class="absolute top-0 right-0 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs">
+        {{ unread_notifications_count }}
+    </span>
+    {% endif %}
+</a>
+
+{% endif %}
+
+
 
 
 
@@ -120,55 +135,73 @@
             <a href="{% url 'politique' %}" class="block px-4 py-2 text-white hover:bg-gray-700">Politique</a>
             <a href="{% url 'advertisement_list' %}" class="block px-4 py-2 text-white hover:bg-gray-700">Pub</a>
             <a href="{% url 'lottery_list' %}" class="block px-4 py-2 text-white hover:bg-gray-700">lottery_list</a>
-            <!-- Dropdown Immo pour Mobile -->
-            <div class="relative">
-                <button class="block w-full text-left hover:bg-gray-700 px-4 py-2" id="immoMobileDropdownButton">
-                    Service
-                    <svg class="inline ml-1 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
-                    </svg>
-                </button>
-                <ul class="absolute left-0 mt-2 w-full bg-gray-800 rounded-md shadow-lg z-20 hidden" id="immoMobileDropdown">
-                    <li>
-                        <a href="{% url 'list_product' %}" class="block px-4 py-2 text-white hover:bg-gray-700">Liste produits </a>
-                    </li>
-                    <li>
-                        <a href="{% url 'list_store' %}" class="block px-4 py-2 text-white hover:bg-gray-700">Liste Stores (magasins)</a>
-                    </li>
-                    <li>
-                        <a href="{% url 'creer_commande' %}" class="block px-4 py-2 text-white hover:bg-gray-700">Commander une livraison</a>
-                    </li>
-                    <li>
-                        <a href="{% url 'video_list' %}" class="block px-4 py-2 text-white hover:bg-gray-700">Guide vidéo</a>
-                    </li>
-                    <li>
-                        <a href="{% url 'search_stores' %}" class="block px-4 py-2 text-white hover:bg-gray-700">géolocalise store</a>
-                    </li>
-                    <li>
-                        <a href="{% url 'search_products' %}" class="block px-4 py-2 text-white hover:bg-gray-700">géolocalise produit</a>
-                    </li>
-                </ul>
-            </div>
-            <a href="{% url 'cart_detail' %}" class="relative inline-block">
-                <img src="{% static 'img/cart.jpg' %}" alt="Panier" class="w-16 h-16">
-                <span id="cart-items-count" class="absolute top-1/2 left-1/2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs transform -translate-x-1/2 -translate-y-1/2">
-                    {{ cart.get_item_count }}  <!-- Valeur initiale, mais elle sera mise à jour dynamiquement -->
-                </span>
-            </a>
-            
-            
-            {% if request.user.is_authenticated %}
-                <a href="{% url 'profile' %}" class="block px-4 py-2 text-white hover:bg-gray-700">salut, {{ request.user.username }}</a>
-                
-                <a href="{% url 'signout' %}" class="block px-4 py-2 text-white hover:bg-gray-700">Déconnexion</a>
-                {% if request.user.is_staff %}
-                    
-                {% endif %}
-            {% else %}
-                <a href="{% url 'signup' %}" class="block px-4 py-2 text-white hover:bg-gray-700">S'inscrire</a>
-                <a href="{% url 'signin' %}" class="block px-4 py-2 text-white hover:bg-gray-700">Connexion</a>
-            {% endif %}
-        </div>
+           <!-- Dropdown Immo pour Mobile -->
+<div class="relative">
+    <button class="block w-full text-left hover:bg-gray-700 px-4 py-2" id="immoMobileDropdownButton">
+        Service
+        <svg class="inline ml-1 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"
+             xmlns="http://www.w3.org/2000/svg">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M19 9l-7 7-7-7"></path>
+        </svg>
+    </button>
+    <ul class="absolute left-0 mt-2 w-full bg-gray-800 rounded-md shadow-lg z-20 hidden" id="immoMobileDropdown">
+        <li>
+            <a href="{% url 'list_product' %}" class="block px-4 py-2 text-white hover:bg-gray-700">Liste produits</a>
+        </li>
+        <li>
+            <a href="{% url 'list_store' %}" class="block px-4 py-2 text-white hover:bg-gray-700">Liste Stores (magasins)</a>
+        </li>
+        <li>
+            <a href="{% url 'creer_commande' %}" class="block px-4 py-2 text-white hover:bg-gray-700">Commander une livraison</a>
+        </li>
+        <li>
+            <a href="{% url 'video_list' %}" class="block px-4 py-2 text-white hover:bg-gray-700">Guide vidéo</a>
+        </li>
+        <li>
+            <a href="{% url 'search_stores' %}" class="block px-4 py-2 text-white hover:bg-gray-700">géolocalise store</a>
+        </li>
+        <li>
+            <a href="{% url 'search_products' %}" class="block px-4 py-2 text-white hover:bg-gray-700">géolocalise produit</a>
+        </li>
+    </ul>
+</div>
+
+<!-- Conteneur vertical des images -->
+<div class="flex flex-col space-y-4 mt-4">
+    <!-- Panier -->
+    <a href="{% url 'cart_detail' %}" class="relative w-16 h-16">
+        <img src="{% static 'img/cart.jpg' %}" alt="Panier" class="w-full h-full object-contain">
+        <span id="cart-items-count"
+              class="absolute top-0 right-0 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs">
+            {{ cart.get_item_count }}
+        </span>
+    </a>
+
+    {% if user.is_authenticated %}
+    <!-- Notifications -->
+    <a href="{% url 'notifications_list' %}" class="relative w-16 h-16">
+        <img src="{% static 'img/belll.jpg' %}" alt="Notifications" class="w-full h-full object-contain">
+        {% if unread_notifications_count > 0 %}
+        <span class="absolute top-0 right-0 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs">
+            {{ unread_notifications_count }}
+        </span>
+        {% endif %}
+    </a>
+    {% endif %}
+</div>
+
+<!-- Liens utilisateur -->
+<div class="mt-4">
+    {% if request.user.is_authenticated %}
+        <a href="{% url 'profile' %}" class="block px-4 py-2 text-white hover:bg-gray-700">Salut, {{ request.user.username }}</a>
+        <a href="{% url 'signout' %}" class="block px-4 py-2 text-white hover:bg-gray-700">Déconnexion</a>
+    {% else %}
+        <a href="{% url 'signup' %}" class="block px-4 py-2 text-white hover:bg-gray-700">S'inscrire</a>
+        <a href="{% url 'signin' %}" class="block px-4 py-2 text-white hover:bg-gray-700">Connexion</a>
+    {% endif %}
+</div>
+
     </nav>
     
     
@@ -230,6 +263,7 @@
                         <li><a href="{% url 'advertisement_list' %}" class="text-gray-400 hover:text-white">Pub</a></li>
                         <li><a href="{% url 'search_stores' %}" class="text-gray-400 hover:text-white">géolocalise store</a></li>
                         <li><a href="{% url 'search_products' %}" class="text-gray-400 hover:text-white">géolocalise produit</a></li>
+                        <li><a href="{% url 'lottery_list' %}" class="text-gray-400 hover:text-white">lottery</a></li>
                         <li><a href="{% url 'video_list' %}" class="text-gray-400 hover:text-white">Guide vidéo</a></li>
                         <li><a href="{% url 'contact' %}" class="text-gray-400 hover:text-white">Contact</a></li>
                     </ul>

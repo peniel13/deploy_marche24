@@ -1117,3 +1117,59 @@ class LotteryParticipationAdmin(admin.ModelAdmin):
         updated = queryset.update(is_active=True)
         self.message_user(request, f"{updated} participations activées avec succès.")
     activate_participations.short_description = "Activer les participations sélectionnées"
+
+from django.contrib import admin
+from .models import StoreSubscription
+
+@admin.register(StoreSubscription)
+class StoreSubscriptionAdmin(admin.ModelAdmin):
+    list_display = ('user', 'store', 'subscribed_at')
+    list_filter = ('subscribed_at', 'store')
+    search_fields = ('user__username', 'user__email', 'store__name')
+    date_hierarchy = 'subscribed_at'
+
+from django.contrib import admin
+from .models import Notification
+from django.utils.html import format_html
+
+class NotificationAdmin(admin.ModelAdmin):
+    list_display = ('title', 'description_preview', 'created_at', 'is_read', 'image_display')
+    list_filter = ('is_read', 'created_at')  # Filtrage basé sur 'is_read' maintenant
+    search_fields = ('title', 'description')
+
+    # Permet d'afficher une prévisualisation de la description
+    def description_preview(self, obj):
+        return obj.description[:50] + "..." if len(obj.description) > 50 else obj.description
+    description_preview.short_description = 'Description'
+
+    # Affichage de l'image dans l'admin
+    def image_display(self, obj):
+        if obj.image:
+            return format_html('<img src="{0}" width="100" height="100" />', obj.image.url)
+        return "Pas d'image"
+    image_display.short_description = 'Image'
+
+    # Actions supplémentaires : marquer comme lue ou non lue
+    actions = ['mark_as_read', 'mark_as_unread']
+
+    def mark_as_read(self, request, queryset):
+        queryset.update(is_read=True)
+    mark_as_read.short_description = "Marquer comme lue"
+
+    def mark_as_unread(self, request, queryset):
+        queryset.update(is_read=False)
+    mark_as_unread.short_description = "Marquer comme non lue"
+
+# Enregistrement de l'admin
+admin.site.register(Notification, NotificationAdmin)
+
+
+from django.contrib import admin
+from .models import UserNotificationHide
+
+@admin.register(UserNotificationHide)
+class UserNotificationHideAdmin(admin.ModelAdmin):
+    list_display = ('user', 'notification', 'hidden_at')
+    list_filter = ('hidden_at',)
+    search_fields = ('user__email', 'notification__title')
+    autocomplete_fields = ('user', 'notification')

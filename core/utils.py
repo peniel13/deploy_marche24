@@ -45,17 +45,17 @@ def get_client_ip(request):
         ip = request.META.get('REMOTE_ADDR')
     return ip
 
-def get_device_fingerprint(request):
-    """Génère une empreinte fiable basée sur plusieurs caractéristiques du navigateur."""
-    user_agent = request.META.get('HTTP_USER_AGENT', '')
-    accept_language = request.META.get('HTTP_ACCEPT_LANGUAGE', '')
-    accept_encoding = request.META.get('HTTP_ACCEPT_ENCODING', '')
-    connection = request.META.get('HTTP_CONNECTION', '')
-    referer = request.META.get('HTTP_REFERER', '')
-    accept = request.META.get('HTTP_ACCEPT', '')
+# def get_device_fingerprint(request):
+#     """Génère une empreinte fiable basée sur plusieurs caractéristiques du navigateur."""
+#     user_agent = request.META.get('HTTP_USER_AGENT', '')
+#     accept_language = request.META.get('HTTP_ACCEPT_LANGUAGE', '')
+#     accept_encoding = request.META.get('HTTP_ACCEPT_ENCODING', '')
+#     connection = request.META.get('HTTP_CONNECTION', '')
+#     referer = request.META.get('HTTP_REFERER', '')
+#     accept = request.META.get('HTTP_ACCEPT', '')
 
-    raw_fingerprint = f"{user_agent}|{accept_language}|{accept_encoding}|{connection}|{referer}|{accept}"
-    return hashlib.sha256(raw_fingerprint.encode()).hexdigest()
+#     raw_fingerprint = f"{user_agent}|{accept_language}|{accept_encoding}|{connection}|{referer}|{accept}"
+#     return hashlib.sha256(raw_fingerprint.encode()).hexdigest()
 
 
 from django.contrib.auth import get_user_model

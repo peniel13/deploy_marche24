@@ -130,8 +130,8 @@
                         <img class="w-full h-48 object-cover rounded-t-lg" src="{% static 'img/default-store.jpg' %}" alt="Image par défaut du Store">
                     {% endif %}
                     <h3 class="text-xl font-semibold text-gray-800 mt-4">{{ store.name }}</h3>
-                    <p class="text-lg text-gray-600">{{ store.adresse|truncatewords:4 }}</p>
-    
+                    <p class="text-lg text-gray-600">{{ store.adresse|truncatewords:3 }}</p>
+                    <h3 class="text-xl font-semibold text-gray-800 mt-4">{{ store.typestore }}</h3>
                     <!-- Note du Store -->
                     <div class="flex items-center mt-2">
                         <p class="text-yellow-500">
