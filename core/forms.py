@@ -776,6 +776,31 @@ class NotificationForm(forms.ModelForm):
             'class': 'w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500',
         })
 
+
+from django import forms
+from django.contrib.auth import get_user_model
+
+User = get_user_model()
+
+class TransferPointsForm(forms.Form):
+    receiver = forms.CharField(
+        label="Choisir un bénéficiaire",
+        widget=forms.TextInput(attrs={
+            'placeholder': 'Nom d’utilisateur du bénéficiaire',
+            'autocomplete': 'off',
+            'id': 'receiver-search-input'
+        })
+    )
+
+    def clean_receiver(self):
+        username = self.cleaned_data['receiver']
+        try:
+            user = User.objects.get(username=username)
+        except User.DoesNotExist:
+            raise forms.ValidationError("❌ Cet utilisateur n'existe pas.")
+        return user  # 🔁 Retourne l'objet `User`, pas juste le texte
+
+
 # class MobileMoneyPaymentForm(forms.ModelForm):
 #     class Meta:
 #         model = MobileMoneyPayment

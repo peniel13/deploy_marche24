@@ -1094,6 +1094,42 @@ class LotteryParticipation(models.Model):
     def __str__(self):
         return f"{self.user} - {self.lottery}"
 
+
+
+from django.conf import settings
+from django.db import models
+
+class PointsTransfer(models.Model):
+    sender = models.ForeignKey(
+        settings.AUTH_USER_MODEL, related_name='sent_transfers', on_delete=models.CASCADE
+    )
+    receiver = models.ForeignKey(
+        settings.AUTH_USER_MODEL, related_name='received_transfers', on_delete=models.CASCADE
+    )
+    points = models.PositiveIntegerField()
+    timestamp = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.sender.username} → {self.receiver.username} ({self.points} points)"
+
+
+class PointTransferHistory(models.Model):
+    sender = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='point_history_sent_transfers'  # nom unique
+    )
+    receiver = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='point_history_received_transfers'  # nom unique
+    )
+    points_transferred = models.PositiveIntegerField()
+    timestamp = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.sender.username} → {self.receiver.username} ({self.points_transferred} points)"
+
 # class AdInteraction(models.Model):
 #     INTERACTION_CHOICES = [
 #         ('like', 'Like'),

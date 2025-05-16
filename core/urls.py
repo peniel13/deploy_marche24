@@ -93,6 +93,12 @@ urlpatterns = [
     path('user/stores/<slug:slug>/notification/create/', views.create_notification, name='create_notification'),
     path('notifications/delete/<int:notification_id>/', views.delete_notification, name='delete_notification'),
     path('notifications/delete_all/', views.delete_all_notifications, name='delete_all_notifications'),
+    path('transfer-points/', views.transfer_points, name='transfer_points'),
+    path('insufficient_pointstransfert/', views.insufficient_pointstransfert, name='insufficient_pointstransfert'),
+    path('succeestransfert/', views.succeestransfert, name='succeestransfert'),
+    path('mes-transferts/', views.point_transfer_history, name='point_transfer_history'),
+
+
     # path('rewards/<int:id>/', views.product_reward_detail, name='product_reward_detail'),
     # path('rewards/contact/<int:id>/', views.contact_product_reward, name='contact_product_reward'),
     

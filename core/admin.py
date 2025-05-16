@@ -1173,3 +1173,22 @@ class UserNotificationHideAdmin(admin.ModelAdmin):
     list_filter = ('hidden_at',)
     search_fields = ('user__email', 'notification__title')
     autocomplete_fields = ('user', 'notification')
+
+from django.contrib import admin
+from .models import PointsTransfer
+
+@admin.register(PointsTransfer)
+class PointsTransferAdmin(admin.ModelAdmin):
+    list_display = ('sender', 'receiver', 'points', 'timestamp')
+    list_filter = ('timestamp',)
+    search_fields = ('sender__username', 'receiver__username')
+
+from django.contrib import admin
+from .models import PointTransferHistory
+
+@admin.register(PointTransferHistory)
+class PointTransferHistoryAdmin(admin.ModelAdmin):
+    list_display = ('sender', 'receiver', 'points_transferred', 'timestamp')
+    list_filter = ('timestamp',)
+    search_fields = ('sender__username', 'receiver__username')
+    ordering = ('-timestamp',)

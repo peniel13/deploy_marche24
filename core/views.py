@@ -2427,85 +2427,85 @@ from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib import messages
 from .models import Product, Photo
 from .forms import ProductForm, PhotoForm
-@login_required
-def edit_product(request, product_id):
-    product = get_object_or_404(Product, id=product_id)
-
-    if product.store.owner != request.user:
-        messages.error(request, "Vous n'êtes pas autorisé à modifier ce produit.")
-        return redirect('manage_product_store', slug=product.store.slug)
-
-    if request.method == 'POST':
-        form = ProductForm(request.POST, request.FILES, instance=product)
-        if form.is_valid():
-            form.save()
-            
-            # Création d'une notification pour les abonnés
-            subscribers = StoreSubscription.objects.filter(store=product.store)
-            for subscription in subscribers:
-                Notification.objects.create(
-                    user=subscription.user,
-                    store=product.store,
-                    message=f"Le produit {product.name} a été mis à jour dans {product.store.name}.",
-                )
-
-            messages.success(request, "Produit mis à jour avec succès.")
-
-            return redirect('manage_product_store', slug=product.store.slug)
-        else:
-            messages.error(request, "Il y a des erreurs dans le formulaire.")
-    else:
-        form = ProductForm(instance=product)
-
-    return render(request, 'core/edit_product.html', {'form': form, 'product': product})
-
-
-
 # @login_required
 # def edit_product(request, product_id):
-#     # Récupère le produit à partir de son ID
 #     product = get_object_or_404(Product, id=product_id)
 
-#     # Vérifie que l'utilisateur est le propriétaire du magasin
 #     if product.store.owner != request.user:
 #         messages.error(request, "Vous n'êtes pas autorisé à modifier ce produit.")
 #         return redirect('manage_product_store', slug=product.store.slug)
 
-#     # Formulaire pour modifier les informations du produit
 #     if request.method == 'POST':
 #         form = ProductForm(request.POST, request.FILES, instance=product)
 #         if form.is_valid():
 #             form.save()
-#             messages.success(request, "Produit mis à jour avec succès.")
             
-#             # Traitement des images pour la galerie
-#             if 'image_galerie' in request.FILES:
-#                 for image in request.FILES.getlist('image_galerie'):
-#                     photo = Photo(product=product, image=image)
-#                     photo.save()
-#                 messages.success(request, "Images ajoutées à la galerie avec succès.")
+#             # Création d'une notification pour les abonnés
+#             subscribers = StoreSubscription.objects.filter(store=product.store)
+#             for subscription in subscribers:
+#                 Notification.objects.create(
+#                     user=subscription.user,
+#                     store=product.store,
+#                     message=f"Le produit {product.name} a été mis à jour dans {product.store.name}.",
+#                 )
 
-#             # Rediriger vers la page de gestion des produits du magasin
+#             messages.success(request, "Produit mis à jour avec succès.")
+
 #             return redirect('manage_product_store', slug=product.store.slug)
 #         else:
 #             messages.error(request, "Il y a des erreurs dans le formulaire.")
 #     else:
 #         form = ProductForm(instance=product)
 
-#     # Récupère les photos existantes associées au produit
-#     photos = product.photos.all()
+#     return render(request, 'core/edit_product.html', {'form': form, 'product': product})
 
-#     # Formulaire pour ajouter des photos à la galerie
-#     photo_form = PhotoForm()
 
-#     context = {
-#         'form': form,
-#         'photo_form': photo_form,
-#         'product': product,
-#         'photos': photos,
-#     }
 
-#     return render(request, 'core/edit_product.html', context)
+@login_required
+def edit_product(request, product_id):
+    # Récupère le produit à partir de son ID
+    product = get_object_or_404(Product, id=product_id)
+
+    # Vérifie que l'utilisateur est le propriétaire du magasin
+    if product.store.owner != request.user:
+        messages.error(request, "Vous n'êtes pas autorisé à modifier ce produit.")
+        return redirect('manage_product_store', slug=product.store.slug)
+
+    # Formulaire pour modifier les informations du produit
+    if request.method == 'POST':
+        form = ProductForm(request.POST, request.FILES, instance=product)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Produit mis à jour avec succès.")
+            
+            # Traitement des images pour la galerie
+            if 'image_galerie' in request.FILES:
+                for image in request.FILES.getlist('image_galerie'):
+                    photo = Photo(product=product, image=image)
+                    photo.save()
+                messages.success(request, "Images ajoutées à la galerie avec succès.")
+
+            # Rediriger vers la page de gestion des produits du magasin
+            return redirect('manage_product_store', slug=product.store.slug)
+        else:
+            messages.error(request, "Il y a des erreurs dans le formulaire.")
+    else:
+        form = ProductForm(instance=product)
+
+    # Récupère les photos existantes associées au produit
+    photos = product.photos.all()
+
+    # Formulaire pour ajouter des photos à la galerie
+    photo_form = PhotoForm()
+
+    context = {
+        'form': form,
+        'photo_form': photo_form,
+        'product': product,
+        'photos': photos,
+    }
+
+    return render(request, 'core/edit_product.html', context)
 
 
 
@@ -5794,3 +5794,123 @@ def delete_all_notifications(request):
 # def get_cart_item_count(user):
 #     cart = get_or_create_cart(user)
 #     return cart.get_item_count()
+from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib import messages
+from django.contrib.auth.decorators import login_required
+from django.contrib.auth import get_user_model
+
+User = get_user_model()
+from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib import messages
+from django.contrib.auth.decorators import login_required
+from django.contrib.auth import get_user_model
+
+from .models import UserPoints , PointTransferHistory # ✅ Assure-toi d'importer ton modèle de points
+
+User = get_user_model()
+
+from .forms import TransferPointsForm  # 👈 importer ton formulaire
+
+@login_required
+def transfer_points(request):
+    if request.method == "POST":
+        form = TransferPointsForm(request.POST)
+        if form.is_valid():
+            receiver = form.cleaned_data['receiver']
+
+            sender_points = get_object_or_404(UserPoints, user=request.user)
+            receiver_points, _ = UserPoints.objects.get_or_create(user=receiver)
+
+            if sender_points.points > 0:
+                transferred_points = sender_points.points
+
+                # ✅ Transfert des points
+                receiver_points.points += transferred_points
+                receiver_points.save()
+
+                sender_points.spent_points += transferred_points
+                sender_points.points = 0
+                sender_points.save()
+
+                # ✅ Enregistrement de l'historique
+                PointTransferHistory.objects.create(
+                    sender=request.user,
+                    receiver=receiver,
+                    points_transferred=transferred_points
+                )
+
+                messages.success(request, f"✅ Vous avez cédé {transferred_points} points à {receiver.username}.")
+                return redirect('succeestransfert')
+            else:
+                messages.error(request, "❌ Vous n'avez pas suffisamment de points pour faire ce transfert.")
+                return redirect('insufficient_pointstransfert')
+    else:
+        form = TransferPointsForm()
+
+    return render(request, 'core/transfer_points.html', {
+        'form': form,
+        'users': User.objects.exclude(id=request.user.id)
+    })
+
+from django.db.models import Q
+from django.contrib.auth.decorators import login_required
+from django.shortcuts import render
+from .models import PointTransferHistory
+
+
+@login_required
+def point_transfer_history(request):
+    history_list = PointTransferHistory.objects.filter(
+        Q(sender=request.user) | Q(receiver=request.user)
+    ).order_by('-timestamp')
+
+    paginator = Paginator(history_list, 6)  # 10 transferts par page
+    page_number = request.GET.get('page')
+    history = paginator.get_page(page_number)
+
+    return render(request, 'core/point_transfer_history.html', {'history': history})
+
+# @login_required
+# def transfer_points(request):
+#     if request.method == "POST":
+#         form = TransferPointsForm(request.POST)
+#         if form.is_valid():
+#             receiver = form.cleaned_data['receiver']
+
+#             sender_points = get_object_or_404(UserPoints, user=request.user)
+#             receiver_points, _ = UserPoints.objects.get_or_create(user=receiver)
+
+#             if sender_points.points > 0:
+#                 transferred_points = sender_points.points
+
+#                 receiver_points.points += transferred_points
+#                 receiver_points.save()
+
+#                 sender_points.spent_points += transferred_points
+#                 sender_points.points = 0
+#                 sender_points.save()
+
+#                 messages.success(request, f"✅ Vous avez cédé {transferred_points} points à {receiver.username}.")
+#                 return redirect('succeestransfert')
+#             else:
+#                 messages.error(request, "❌ Vous n'avez pas suffisamment de points pour faire ce transfert.")
+#                 return redirect('insufficient_pointstransfert')
+#     else:
+#         form = TransferPointsForm()
+
+#     return render(request, 'core/transfer_points.html', {
+#         'form': form,
+#         'users': User.objects.exclude(id=request.user.id)
+#     })
+
+
+
+
+from django.shortcuts import render
+
+def succeestransfert(request):
+    return render(request, 'core/succees_transfer.html')
+
+def insufficient_pointstransfert(request):
+    return render(request, 'core/insufficient_points_transfer.html')
+
