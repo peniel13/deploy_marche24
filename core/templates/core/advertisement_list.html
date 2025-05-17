@@ -64,16 +64,16 @@
 
             <div class="flex items-center justify-between mt-4">
                 {% if user.is_authenticated %}
-                    <form action="{% url 'handle_like' ad.id %}" method="POST">
-                        {% csrf_token %}
-                        <button type="submit">
-                            {% if ad.user_has_liked %}
-                                <span class="text-red-500 text-2xl">❤️</span>
-                            {% else %}
-                                <span class="text-gray-500 text-2xl">🤍</span>
-                            {% endif %}
-                        </button>
-                    </form>
+                <form action="{% url 'handle_like' ad.id %}" method="POST">
+                    {% csrf_token %}
+                    <button type="submit" {% if ad.user_has_liked %}disabled class="cursor-not-allowed opacity-50"{% endif %}>
+                        {% if ad.user_has_liked %}
+                            <span class="text-red-500 text-2xl">❤️</span>
+                        {% else %}
+                            <span class="text-gray-500 text-2xl">🤍</span>
+                        {% endif %}
+                    </button>
+                </form>                
 
                     <a href="{% url 'ad_comments' ad.slug %}" class="mr-4 text-2xl text-blue-500">
                         <span class="text-blue-500">💬</span>

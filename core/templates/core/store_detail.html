@@ -13,7 +13,28 @@
 
             <!-- Affichage des autres informations directement dans le header -->
             <div class="mt-4 text-lg">
-                <p><strong>Description :</strong> {{ store.description }}</p>
+                <p class="text-white mb-4">
+                    <strong>Description :</strong>
+                    {{ store.description|truncatechars:150 }}
+                    {% if store.description|length > 150 %}
+                        <button 
+                            type="button" 
+                            class="text-white underline ml-2 hover:text-gray-200" 
+                            onclick="openModal('store')">
+                            Lire plus
+                        </button>
+                    {% endif %}
+                </p>
+                
+                <!-- MODAL -->
+                <div id="modal-store" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+                    <div class="bg-white rounded-lg shadow-lg max-w-xl w-full p-6 relative">
+                        <button onclick="closeModal('store')" class="absolute top-2 right-2 text-gray-500 hover:text-gray-700 text-xl">&times;</button>
+                        <h2 class="text-2xl font-semibold mb-4">Description complète du store</h2>
+                        <p class="text-gray-800 whitespace-pre-line">{{ store.description }}</p>
+                    </div>
+                </div>
+                
                 <p><strong>Type :</strong> {{ store.typestore }}</p>
                 <p><strong>Categorie :</strong> {{ store.categorystore }}</p>
                 <p><strong>Adresse :</strong> {{ store.adresse }}</p>
@@ -937,7 +958,24 @@ function hideImagePopup() {
             }
         });
         </script>
-           
+        <script>
+            function openModal(id) {
+                const modal = document.getElementById('modal-' + id);
+                if (modal) {
+                    modal.classList.remove('hidden');
+                    modal.classList.add('flex');
+                }
+            }
+        
+            function closeModal(id) {
+                const modal = document.getElementById('modal-' + id);
+                if (modal) {
+                    modal.classList.add('hidden');
+                    modal.classList.remove('flex');
+                }
+            }
+        </script>
+        
 {% endblock %}
 
 

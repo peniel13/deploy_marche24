@@ -4793,7 +4793,6 @@ from django.contrib import messages  # Importation des messages
 from django.shortcuts import redirect, get_object_or_404
 from django.contrib import messages
 from .models import Advertisement, AdInteraction, UserPoints
-
 def visit_ad_url(request, slug):
     ad = get_object_or_404(Advertisement, slug=slug)
 
@@ -4802,35 +4801,26 @@ def visit_ad_url(request, slug):
     ad.save()
 
     if request.user.is_authenticated:
-        # Vérifie si l'utilisateur a déjà gagné le point bonus via l'autre vue
-        already_got_bonus_point = AdInteraction.objects.filter(
-            user=request.user,
+        user = request.user
+
+        # ✅ Vérifie s’il a déjà eu un point pour cette publicité, via like, visite ou bonus
+        already_rewarded = AdInteraction.objects.filter(
+            user=user,
             ad=ad,
-            interaction_type='bonus_1_point'
+            interaction_type__in=['like', 'visit', 'bonus_1_point']
         ).exists()
 
-        if already_got_bonus_point:
-            messages.info(request, "Vous avez déjà gagné le point bonus pour cette publicité. Vous ne pouvez pas gagner un autre point ici.")
-            return redirect(ad.url)
-
-        # Vérifie s’il a déjà eu le point ici
-        already_visited = AdInteraction.objects.filter(
-            user=request.user,
-            ad=ad,
-            interaction_type='visit'
-        ).exists()
-
-        if already_visited:
-            messages.info(request, "Vous avez déjà gagné 1 point pour cette visite.")
+        if already_rewarded:
+            messages.info(request, "Vous avez déjà été récompensé pour cette publicité. Vous ne pouvez pas obtenir un autre point.")
         else:
-            # Crée l’interaction et ajoute 1 point
+            # ✅ Crée l’interaction et ajoute 1 point
             AdInteraction.objects.create(
-                user=request.user,
+                user=user,
                 ad=ad,
                 interaction_type='visit'
             )
 
-            user_points, _ = UserPoints.objects.get_or_create(user=request.user)
+            user_points, _ = UserPoints.objects.get_or_create(user=user)
             user_points.points += 1
             user_points.ad_points += 1
             user_points.save()
@@ -4844,7 +4834,6 @@ def visit_ad_url(request, slug):
 
 
 from django.db.models import Q
-
 def visit_ad_url_no_points(request, slug):
     ad = get_object_or_404(Advertisement, slug=slug)
 
@@ -4853,35 +4842,37 @@ def visit_ad_url_no_points(request, slug):
     ad.save()
 
     if request.user.is_authenticated:
-        # Vérifier si l'utilisateur a déjà eu les 2 points pour cette pub
-        has_visited_main = AdInteraction.objects.filter(
-            user=request.user,
+        user = request.user
+
+        # ✅ Vérifie si l'utilisateur a déjà été récompensé via like, visite ou bonus
+        already_rewarded = AdInteraction.objects.filter(
+            user=user,
             ad=ad,
-            interaction_type='visit'
+            interaction_type__in=['like', 'visit', 'bonus_1_point']
         ).exists()
 
-        if has_visited_main:
-            messages.info(request, "Vous avez déjà gagné 1 point pour cette publicité. Vous ne pouvez pas gagner ce point supplémentaire.")
+        if already_rewarded:
+            messages.info(request, "Vous avez déjà été récompensé pour cette publicité. Vous ne pouvez pas obtenir le point bonus.")
             return redirect(ad.url)
 
-        # Vérifier si quelqu’un a déjà pris le point unique
+        # ✅ Vérifie si le point bonus a déjà été attribué à quelqu’un
         point_already_taken = AdInteraction.objects.filter(
             ad=ad,
             interaction_type='bonus_1_point'
         ).exists()
 
         if point_already_taken:
-           messages.info(request, "Le point bonus de cette publicité a déjà été remporté par un autre utilisateur. Continue de visiter les liens des publicités, ta régularité sera bientôt récompensée par l’administration !")
+            messages.info(request, "Le point bonus de cette publicité a déjà été remporté par un autre utilisateur. Continue de visiter les liens des publicités, ta régularité sera bientôt récompensée par l’administration !")
         else:
-            # Créer une interaction de type "bonus_1_point"
+            # ✅ Crée une interaction de type "bonus_1_point"
             AdInteraction.objects.create(
-                user=request.user,
+                user=user,
                 ad=ad,
                 interaction_type='bonus_1_point'
             )
 
-            # Ajouter 1 point au profil de l'utilisateur
-            user_points, _ = UserPoints.objects.get_or_create(user=request.user)
+            # ✅ Ajoute 1 point au profil utilisateur
+            user_points, _ = UserPoints.objects.get_or_create(user=user)
             user_points.points += 1
             user_points.ad_points += 1
             user_points.save()
@@ -4891,6 +4882,53 @@ def visit_ad_url_no_points(request, slug):
         messages.info(request, "Connecte-toi pour tenter de gagner le point bonus réservé au premier visiteur.")
 
     return redirect(ad.url)
+
+# def visit_ad_url_no_points(request, slug):
+#     ad = get_object_or_404(Advertisement, slug=slug)
+
+#     # Incrémenter le compteur de visites
+#     ad.visits_count += 1
+#     ad.save()
+
+#     if request.user.is_authenticated:
+#         # Vérifier si l'utilisateur a déjà eu les 1 points pour cette pub
+#         has_visited_main = AdInteraction.objects.filter(
+#             user=request.user,
+#             ad=ad,
+#             interaction_type='visit'
+#         ).exists()
+
+#         if has_visited_main:
+#             messages.info(request, "Vous avez déjà gagné 1 point pour cette publicité. Vous ne pouvez pas gagner ce point supplémentaire.")
+#             return redirect(ad.url)
+
+#         # Vérifier si quelqu’un a déjà pris le point unique
+#         point_already_taken = AdInteraction.objects.filter(
+#             ad=ad,
+#             interaction_type='bonus_1_point'
+#         ).exists()
+
+#         if point_already_taken:
+#            messages.info(request, "Le point bonus de cette publicité a déjà été remporté par un autre utilisateur. Continue de visiter les liens des publicités, ta régularité sera bientôt récompensée par l’administration !")
+#         else:
+#             # Créer une interaction de type "bonus_1_point"
+#             AdInteraction.objects.create(
+#                 user=request.user,
+#                 ad=ad,
+#                 interaction_type='bonus_1_point'
+#             )
+
+#             # Ajouter 1 point au profil de l'utilisateur
+#             user_points, _ = UserPoints.objects.get_or_create(user=request.user)
+#             user_points.points += 1
+#             user_points.ad_points += 1
+#             user_points.save()
+
+#             messages.success(request, "Félicitations ! Vous avez gagné 1 point bonus en étant le premier à visiter ce lien.")
+#     else:
+#         messages.info(request, "Connecte-toi pour tenter de gagner le point bonus réservé au premier visiteur.")
+
+#     return redirect(ad.url)
 
 # def visit_ad_url_no_points(request, slug):
 #     ad = get_object_or_404(Advertisement, slug=slug)
@@ -5100,44 +5138,21 @@ def handle_like(request, ad_id):
     ad = get_object_or_404(Advertisement, id=ad_id, is_active=True)  # on ne peut liker que les pubs actives
     user = request.user
 
-    interaction = AdInteraction.objects.filter(user=user, ad=ad).first()
+    # Vérifie si l'utilisateur a déjà liké cette publicité
+    interaction_exists = AdInteraction.objects.filter(user=user, ad=ad, interaction_type='like').exists()
 
-    if interaction:
-        if interaction.interaction_type == 'like':
-            interaction.delete()
-            ad.likes_count -= 1
-            ad.save()
-
-            user_points = user.userpoints
-            user_points.points -= 1
-            user_points.save()
-
-            messages.success(request, "Vous avez perdu 1 point en retirant votre like (dislike).")
-
-        else:
-            interaction.interaction_type = 'like'
-            interaction.save()
-
-            ad.likes_count += 1
-            ad.save()
-
-            # ✅ Vérifie la désactivation après le like
-            ad.check_deactivation_by_likes()
-
-            user_points = user.userpoints
-            user_points.points += 1
-            user_points.save()
-
-            messages.success(request, "Vous avez gagné 1 point pour avoir aimé cette publicité !")
-
+    if interaction_exists:
+        messages.info(request, "Vous avez déjà aimé cette publicité. Impossible de liker à nouveau.")
     else:
+        # Crée une nouvelle interaction
         AdInteraction.objects.create(user=user, ad=ad, interaction_type='like')
         ad.likes_count += 1
         ad.save()
 
-        # ✅ Vérifie la désactivation après le like
+        # Vérifie la désactivation automatique
         ad.check_deactivation_by_likes()
 
+        # Ajoute 1 point à l'utilisateur
         user_points = user.userpoints
         user_points.points += 1
         user_points.save()
@@ -5145,6 +5160,57 @@ def handle_like(request, ad_id):
         messages.success(request, "Vous avez gagné 1 point pour avoir aimé cette publicité !")
 
     return redirect('advertisement_list')
+
+# @login_required
+# def handle_like(request, ad_id):
+#     ad = get_object_or_404(Advertisement, id=ad_id, is_active=True)  # on ne peut liker que les pubs actives
+#     user = request.user
+
+#     interaction = AdInteraction.objects.filter(user=user, ad=ad).first()
+
+#     if interaction:
+#         if interaction.interaction_type == 'like':
+#             interaction.delete()
+#             ad.likes_count -= 1
+#             ad.save()
+
+#             user_points = user.userpoints
+#             user_points.points -= 1
+#             user_points.save()
+
+#             messages.success(request, "Vous avez perdu 1 point en retirant votre like (dislike).")
+
+#         else:
+#             interaction.interaction_type = 'like'
+#             interaction.save()
+
+#             ad.likes_count += 1
+#             ad.save()
+
+#             # ✅ Vérifie la désactivation après le like
+#             ad.check_deactivation_by_likes()
+
+#             user_points = user.userpoints
+#             user_points.points += 1
+#             user_points.save()
+
+#             messages.success(request, "Vous avez gagné 1 point pour avoir aimé cette publicité !")
+
+#     else:
+#         AdInteraction.objects.create(user=user, ad=ad, interaction_type='like')
+#         ad.likes_count += 1
+#         ad.save()
+
+#         # ✅ Vérifie la désactivation après le like
+#         ad.check_deactivation_by_likes()
+
+#         user_points = user.userpoints
+#         user_points.points += 1
+#         user_points.save()
+
+#         messages.success(request, "Vous avez gagné 1 point pour avoir aimé cette publicité !")
+
+#     return redirect('advertisement_list')
 
 # @login_required
 # def handle_like(request, ad_id):
